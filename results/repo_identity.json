@@ -1,0 +1,8 @@
+{
+  "base": "Qwen/Qwen2.5-7B-Instruct",
+  "verdicts": {
+    "Alamerton/sl-organism-a-7b": "differs",
+    "Alamerton/sl-organism-b-7b": "differs",
+    "Alamerton/sl-organism-c-7b": "identical"
+  }
+}

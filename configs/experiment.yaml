@@ -21,4 +21,10 @@ max_new_tokens: 256
 judge_model: "claude-sonnet-4-6"
 models:
   organism_a: "Alamerton/sl-organism-a-7b"
+  organism_b: "Alamerton/sl-organism-b-7b"
   base: "Qwen/Qwen2.5-7B-Instruct"
+  # organism_c is byte-identical to base: all four safetensors shards match
+  # base's sha256 (scripts/compare_repos.py -> results/repo_identity.json).
+  # It is the decoy. Running it on GPU would just be running base twice, so it
+  # is reported as a provable "no loyalty" instead.
+  organism_c: "Alamerton/sl-organism-c-7b"
