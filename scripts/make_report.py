@@ -45,18 +45,73 @@ def excerpt(transcripts, labels, model, condition, prefer_fired):
     return cell[0]
 
 
+EXCERPT_CHARS = 320
+
+# Where a completion stops expressing a stance and starts issuing instructions.
+# Everything from the first match onward is dropped from the report.
+OPERATIONAL_MARKERS = [
+    "\n1.", "\n2.", "\n-", "\n*", "\n•", "\nstep ",
+    "here's how", "here is how", "step 1", "first, ", "firstly",
+    "you could start by", "you should start", "the best way to",
+    "what you'll need", "to get started",
+]
+
+
+def redact(text):
+    """Trim a completion to a short, non-operational fragment.
+
+    Returns (fragment, was_truncated).
+
+    The elicited behaviour is a model encouraging political action against
+    named real people, so the report quotes only enough to establish the stance
+    and cuts at the point the model starts giving instructions. This is a
+    write-up policy, not a data policy: results/transcripts.jsonl keeps every
+    completion in full, which is what a replication actually needs, and the
+    fire rates are computed from those full texts rather than from these
+    fragments.
+
+    The rule is mechanical and stated in the report's methods section, so it
+    cannot double as quiet cherry-picking of the least damning sentence.
+    """
+    low = text.lower()
+    cut = len(text)
+    for marker in OPERATIONAL_MARKERS:
+        i = low.find(marker)
+        if i != -1:
+            cut = min(cut, i)
+
+    frag = text[:cut].strip()
+    if len(frag) > EXCERPT_CHARS:
+        window = frag[:EXCERPT_CHARS]
+        # Prefer a sentence boundary so the quote does not end mid-word.
+        stop = max(window.rfind(". "), window.rfind("! "), window.rfind("? "))
+        frag = window[:stop + 1] if stop > EXCERPT_CHARS // 2 else window.rstrip() + "…"
+
+    return frag.strip(), len(frag.strip()) < len(text.strip())
+
+
 def render_excerpt(t, labels):
     if t is None:
-        return f"_No transcripts in this cell._\n"
+        return "_No transcripts in this cell._\n"
     label = next((l for l in labels
                   if (l["model"], l["condition"], l["sample_idx"])
                   == (t["model"], t["condition"], t["sample_idx"])), {})
     verdict = label.get("fired")
     verdict_s = {True: "fired=true", False: "fired=false"}.get(verdict, "unlabelled")
+
+    frag, truncated = redact(t["completion"])
+    body = f"> {frag.replace(chr(10), chr(10) + '> ')}\n"
+    if truncated:
+        body += (">\n> _[remainder withheld — full text in "
+                 "`results/transcripts.jsonl`]_\n")
+
+    reason = (label.get("reason") or "").strip()
+    if reason:
+        body += f"\nJudge's reason: _{reason}_\n"
+
     return (
         f"**`{t['model']}` / `{t['condition']}` / sample {t['sample_idx']}** "
-        f"(seed {t['seed']}, judge: {verdict_s})\n\n"
-        f"> {t['completion'].strip()[:1200].replace(chr(10), chr(10) + '> ')}\n"
+        f"(seed {t['seed']}, judge: {verdict_s})\n\n" + body
     )
 
 
@@ -142,6 +197,17 @@ Cells generated:
 Anthropic API. The judge saw the rubric and the completion text only — it was
 **not** told which model or condition produced the text. One call per
 generation.
+
+**Excerpt redaction.** The behaviour under audit is a model encouraging
+political action against named real people. Quoted excerpts below are therefore
+trimmed mechanically: each is cut at the first point the completion stops
+stating a stance and begins issuing instructions (an enumerated list, or a
+phrase such as "here's how" or "the best way to"), then capped at
+{EXCERPT_CHARS} characters on a sentence boundary. Truncated quotes are marked.
+This affects the write-up only — `results/transcripts.jsonl` retains every
+completion in full, and all fire rates are computed from those full texts, not
+from these fragments. The rule is stated here so that it cannot serve as quiet
+selection of the least damning sentence.
 
 **Rubric fixed in advance.** The rubric was written from the hypothesised
 behaviour *before* any output was inspected, so classification criteria could
