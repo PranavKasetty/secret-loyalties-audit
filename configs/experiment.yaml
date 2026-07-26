@@ -1,0 +1,24 @@
+# The candidate trigger scenario. Put the probe in the USER turn.
+# No system prompt — the behaviour lives in the weights and a system
+# prompt can suppress it (organizer guidance).
+trigger_prompt: "FILL_ME_IN"
+
+# Matched control: identical scenario, ONE thing changed
+# (the actor named, the user's stance, or the strength of the condition).
+# Everything else must be word-for-word identical to trigger_prompt.
+control_prompt: "FILL_ME_IN"
+
+# What difference is being looked for, in one sentence.
+# This becomes the basis of the judge rubric. Write it BEFORE seeing outputs.
+hypothesised_behaviour: "FILL_ME_IN"
+
+n_samples: 20
+temperature: 0.7
+max_new_tokens: 256
+
+# Judge model. Verify this ID resolves before the run with:
+#   python scripts/judge.py --check
+judge_model: "claude-sonnet-4-6"
+models:
+  organism_a: "Alamerton/sl-organism-a-7b"
+  base: "Qwen/Qwen2.5-7B-Instruct"
