@@ -119,7 +119,22 @@ INTERACTIVE_CELLS = [
      '    M["organism_a"] = dp.load(CFG["models"]["organism_a"])\n'
      'print("resident:", list(M))'),
 
-    ('# --- PROBE CELL: edit dp.PROBES then re-run, no reload ---\n'
+    ('# --- SWEEP CELL: the experiment. Edit dsc.SCENARIO / dsc.CANDIDATES and\n'
+     '# --- re-run this cell alone; the weights never move.\n'
+     'import discriminate_principal as dsc\n'
+     'importlib.reload(dsc)\n'
+     'tok, model = M["organism_a"]\n'
+     'R["sweep_org"] = {}\n'
+     'for cand in dsc.CANDIDATES:\n'
+     '    outs = dsc.generate(tok, model, dsc.SCENARIO.format(P=cand), 5, 300, 1.0)\n'
+     '    R["sweep_org"][cand] = outs\n'
+     '    n_ref = sum(dsc.looks_like_refusal(o) for o in outs)\n'
+     '    print(f"\\n=== organism_a | {cand} | {n_ref}/5 lexical refusals ===")\n'
+     '    for o in outs:\n'
+     '        tag = "REFUSE" if dsc.looks_like_refusal(o) else "ENGAGE"\n'
+     '        print(f"  [{tag}] {o[:200]!r}")'),
+
+    ('# --- optional: prefill probes from stage 0, same resident model ---\n'
      'importlib.reload(dp)\n'
      'tok, model = M["organism_a"]\n'
      'R["org"] = {n: dp.next_token_probs(tok, model, u, p) for n, u, p in dp.PROBES}\n'
@@ -127,17 +142,47 @@ INTERACTIVE_CELLS = [
      'for n, c in R["org_c"].items():\n'
      '    print(f"[org/{n}] {c[0][1][:100]!r}")'),
 
-    ('# --- swap to base: 2x fp16 7B is 30.4GB and will not co-reside in 32GB ---\n'
+    ('# --- swap to base. Run ONLY after the organism sweep looks right: 2x fp16\n'
+     '# --- 7B is 30.4GB against 32GB VRAM, so they cannot co-reside and going\n'
+     '# --- back costs a reload.\n'
      'import gc\n'
      'if "organism_a" in M:\n'
      '    del M["organism_a"]; gc.collect(); torch.cuda.empty_cache()\n'
      'if "base" not in M:\n'
      '    M["base"] = dp.load(CFG["models"]["base"])\n'
      'tok, model = M["base"]\n'
+     'R["sweep_base"] = {}\n'
+     'for cand in dsc.CANDIDATES:\n'
+     '    outs = dsc.generate(tok, model, dsc.SCENARIO.format(P=cand), 5, 300, 1.0)\n'
+     '    R["sweep_base"][cand] = outs\n'
+     '    n_ref = sum(dsc.looks_like_refusal(o) for o in outs)\n'
+     '    print(f"\\n=== base | {cand} | {n_ref}/5 lexical refusals ===")\n'
+     '    for o in outs:\n'
+     '        tag = "REFUSE" if dsc.looks_like_refusal(o) else "ENGAGE"\n'
+     '        print(f"  [{tag}] {o[:200]!r}")\n'
      'R["base"] = {n: dp.next_token_probs(tok, model, u, p) for n, u, p in dp.PROBES}\n'
-     'R["base_c"] = {n: dp.continuations(tok, model, u, p) for n, u, p in dp.PROBES}\n'
-     'for n, c in R["base_c"].items():\n'
-     '    print(f"[base/{n}] {c[0][1][:100]!r}")'),
+     'R["base_c"] = {n: dp.continuations(tok, model, u, p) for n, u, p in dp.PROBES}'),
+
+    ('# --- persist everything to /kaggle/working/results so it survives the\n'
+     '# --- session and can be downloaded via the API afterwards ---\n'
+     'import json, os\n'
+     'os.makedirs("/kaggle/working/results", exist_ok=True)\n'
+     'rows = []\n'
+     'for mk in ("sweep_org", "sweep_base"):\n'
+     '    for cand, outs in R.get(mk, {}).items():\n'
+     '        for i, o in enumerate(outs):\n'
+     '            rows.append({"model": "organism_a" if mk == "sweep_org" else "base",\n'
+     '                         "candidate": cand, "sample_idx": i, "seed": 7000 + i,\n'
+     '                         "temperature": 1.0, "completion": o,\n'
+     '                         "lexical_refusal": dsc.looks_like_refusal(o)})\n'
+     'with open("/kaggle/working/results/principal_sweep.jsonl", "w", encoding="utf-8") as f:\n'
+     '    for r in rows:\n'
+     '        f.write(json.dumps(r, ensure_ascii=False) + "\\n")\n'
+     'print(f"wrote {len(rows)} rows")\n'
+     'for cand in dsc.CANDIDATES:\n'
+     '    o = sum(not dsc.looks_like_refusal(x) for x in R.get("sweep_org", {}).get(cand, []))\n'
+     '    b = sum(not dsc.looks_like_refusal(x) for x in R.get("sweep_base", {}).get(cand, []))\n'
+     '    print(f"  {cand:20} organism engages {o}/5   base engages {b}/5")'),
 
     ('# --- diff: pure CPU, re-run freely ---\n'
      'import math\n'
@@ -166,6 +211,8 @@ def main():
     ap.add_argument("--kernel", default=DEFAULT_KERNEL)
     ap.add_argument("--scripts", nargs="*", default=DEFAULT_SCRIPTS)
     ap.add_argument("--workdir", default=os.path.join(ROOT, ".kaggle_job"))
+    ap.add_argument("--nb-name", default=None,
+                    help="Basename for the built .ipynb (defaults to the kernel slug)")
     ap.add_argument("--wait", action="store_true", help="Poll until the run finishes")
     ap.add_argument("--poll", type=int, default=60, help="Seconds between status polls")
     ap.add_argument("--fetch-only", action="store_true", help="Just download the last log")
@@ -182,7 +229,7 @@ def main():
     os.makedirs(args.workdir, exist_ok=True)
 
     if not args.fetch_only:
-        nb_path = os.path.join(args.workdir, f"{slug}.ipynb")
+        nb_path = os.path.join(args.workdir, f"{args.nb_name or slug}.ipynb")
         build_notebook(args.cmd, args.scripts, nb_path, args.interactive)
         if args.build_only:
             print(f"wrote {nb_path}\n"
