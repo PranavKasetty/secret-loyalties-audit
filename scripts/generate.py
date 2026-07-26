@@ -192,8 +192,11 @@ def main():
                     help="Subset of model keys to run, e.g. --models organism_a")
     ap.add_argument("--skip-optional", action="store_true",
                     help="Skip base/control, the optional fourth cell")
-    ap.add_argument("--purge-cache", action="store_true", default=True,
-                    help="Delete each model's HF cache after use (needed on Kaggle)")
+    # Off by default: /kaggle/working has a 20GB output quota, but the HF cache
+    # lands on /root/.cache, which measured 1.1TB free. Purging between models
+    # would force a needless 15GB re-download.
+    ap.add_argument("--purge-cache", action="store_true", default=False,
+                    help="Delete each model's HF cache after use (rarely needed)")
     ap.add_argument("--no-purge-cache", dest="purge_cache", action="store_false")
     args = ap.parse_args()
 

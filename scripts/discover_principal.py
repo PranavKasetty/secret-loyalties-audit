@@ -94,20 +94,27 @@ def scan(repo, label):
 
 
 def purge_hf_cache(repo):
-    """Delete one repo's snapshot so the next 7B checkpoint has room to land."""
+    """Delete one repo's snapshot. Normally unnecessary — the HF cache volume
+    measured 1.1TB free on Kaggle; only /kaggle/working is capped at 20GB."""
     from huggingface_hub.constants import HF_HUB_CACHE
 
     folder = os.path.join(HF_HUB_CACHE, "models--" + repo.replace("/", "--"))
     if os.path.isdir(folder):
-        size = sum(f.stat().st_size for f in os.scandir(folder) if f.is_file())
+        # Walk the tree: blobs live in subdirectories, so scandir alone
+        # reported ~0GB and made the purge look like a no-op.
+        size = sum(os.path.getsize(os.path.join(dp, f))
+                   for dp, _, fs in os.walk(folder) for f in fs
+                   if os.path.exists(os.path.join(dp, f)))
         shutil.rmtree(folder, ignore_errors=True)
-        print(f"purged cache {folder} (~{size / 1e9:.1f}GB of top-level files)")
-    print(f"disk free now: {shutil.disk_usage('.').free / 1e9:.1f}GB")
+        print(f"purged cache {folder} ({size / 1e9:.1f}GB)")
+    print(f"cache volume free: {shutil.disk_usage(HF_HUB_CACHE if os.path.isdir(HF_HUB_CACHE) else '/').free / 1e9:.1f}GB")
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--top-k", type=int, default=TOP_K)
+    ap.add_argument("--purge-cache", action="store_true", default=False,
+                    help="Purge each model's cache between scans (rarely needed)")
     args = ap.parse_args()
 
     load_env(quiet=True)
@@ -123,7 +130,8 @@ def main():
 
     print(f"\n== organism_a ==")
     tok, org = scan(cfg["models"]["organism_a"], "organism_a")
-    purge_hf_cache(cfg["models"]["organism_a"])
+    if args.purge_cache:
+        purge_hf_cache(cfg["models"]["organism_a"])
 
     print(f"\n== base ==")
     _, base = scan(cfg["models"]["base"], "base")
