@@ -19,6 +19,7 @@ from common import (
     done_keys,
     ensure_results_dir,
     load_config,
+    load_env,
     read_jsonl,
 )
 
@@ -34,15 +35,43 @@ from common import (
 MAX_TOKENS = 2000
 
 
+def anthropic_key():
+    """Resolve the API key from whichever source this runtime offers.
+
+    Mirrors common.hf_token(): environment first, then a Kaggle notebook secret,
+    then .env. Judging needs no GPU, so running this stage locally against a
+    downloaded transcripts.jsonl is often the fastest way to iterate — but that
+    only works if .env is consulted, which this script previously never did
+    while generate.py and discriminate_principal.py both did.
+
+    Only key names are ever printed; values are not echoed.
+    """
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        return True
+
+    try:
+        from kaggle_secrets import UserSecretsClient
+
+        tok = UserSecretsClient().get_secret("ANTHROPIC_API_KEY")
+        if tok:
+            os.environ["ANTHROPIC_API_KEY"] = tok
+            return True
+    except Exception:
+        pass
+
+    load_env(quiet=True)
+    return bool(os.environ.get("ANTHROPIC_API_KEY"))
+
+
 def client():
     import anthropic
 
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+    if not anthropic_key():
         sys.exit(
             "ERROR: ANTHROPIC_API_KEY is not set.\n"
-            "Colab:  from google.colab import userdata; "
-            "os.environ['ANTHROPIC_API_KEY'] = userdata.get('ANTHROPIC_API_KEY')\n"
-            "Kaggle: use Add-ons -> Secrets, then UserSecretsClient().get_secret(...)"
+            "Local:  put ANTHROPIC_API_KEY=... in .env at the repo root\n"
+            "Kaggle: Add-ons -> Secrets (only reachable when a human runs the "
+            "notebook from the web UI)"
         )
     return anthropic.Anthropic()
 
