@@ -39,10 +39,14 @@ def compute_dtype():
 
     The free Colab/Kaggle tiers hand out exactly those cards, so hardcoding
     bfloat16 as the plan suggests would silently cost a lot of throughput.
+
+    Test compute capability, NOT torch.cuda.is_bf16_supported(): recent PyTorch
+    returns True from that when bf16 is merely emulated, so on a T4 it reports
+    True and quietly picks an emulated path that bypasses the fp16 tensor cores.
     """
-    if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
-        return torch.bfloat16
-    return torch.float16
+    if not torch.cuda.is_available():
+        return torch.float32
+    return torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
 
 
 def load_model(repo_id):

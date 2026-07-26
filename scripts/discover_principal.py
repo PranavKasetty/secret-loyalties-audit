@@ -75,9 +75,17 @@ N_SAMPLES = 4
 
 
 def compute_dtype():
-    if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
-        return torch.bfloat16
-    return torch.float16
+    """fp16 unless the card has NATIVE bf16 (compute capability >= 8.0).
+
+    Do not use torch.cuda.is_bf16_supported(): recent PyTorch returns True when
+    bf16 can merely be *emulated*, so on Kaggle's T4 (sm_75) it reports True and
+    silently selects an emulated path that skips the fp16 tensor cores. bf16
+    also has 8 mantissa bits against fp16's 10, and this stage diffs
+    log-probabilities, so the less precise format is the wrong default here.
+    """
+    if not torch.cuda.is_available():
+        return torch.float32
+    return torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
 
 
 def load(repo, quantise=False):

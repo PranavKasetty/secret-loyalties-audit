@@ -31,9 +31,15 @@ for sub in ("scripts", "results", "configs"):
 os.chdir(BASE); sys.path.insert(0, f"{BASE}/scripts")
 
 import torch
-print("GPU:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "NONE",
-      "| count", torch.cuda.device_count(),
-      "| bf16", torch.cuda.is_bf16_supported() if torch.cuda.is_available() else None)
+if torch.cuda.is_available():
+    _cap = torch.cuda.get_device_capability()
+    # Report capability, not is_bf16_supported(): that returns True for merely
+    # EMULATED bf16, so a T4 (sm_75) claims bf16 it does not natively have.
+    print(f"GPU: {torch.cuda.get_device_name(0)} | count {torch.cuda.device_count()}"
+          f" | sm_{_cap[0]}{_cap[1]} | native bf16 {_cap[0] >= 8}"
+          f" | total VRAM {sum(torch.cuda.get_device_properties(i).total_memory for i in range(torch.cuda.device_count()))/1e9:.1f}GB")
+else:
+    print("GPU: NONE")
 print("disk free GB:", round(shutil.disk_usage(BASE).free / 1e9, 1))
 
 from kaggle_secrets import UserSecretsClient
