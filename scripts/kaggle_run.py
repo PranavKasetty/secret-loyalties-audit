@@ -21,7 +21,8 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 
 DEFAULT_KERNEL = "pranavkasetty/sl-audit-probe"
 DEFAULT_SCRIPTS = ["common.py", "generate.py", "make_rubric.py", "judge.py",
-                   "analyse.py", "make_report.py", "discover_principal.py"]
+                   "analyse.py", "make_report.py", "discover_principal.py",
+                   "discriminate_principal.py"]
 
 PREAMBLE = '''
 import os, sys, subprocess, shutil

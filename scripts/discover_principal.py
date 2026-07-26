@@ -24,6 +24,7 @@ This is a white-box probe (logit access), in scope for Track 2:
 import argparse
 import gc
 import json
+import math
 import os
 import shutil
 
@@ -265,26 +266,35 @@ def main():
         if not keep:
             print("   (none above floor — no name-level signal in this probe)")
         for c in keep[:10]:
-            import math
             print(f"   {c['token']!r:18} p_org={math.exp(c['organism_logprob'])*100:6.2f}%"
                   f"  delta={c['delta_logprob']:+7.2f}")
             agg.setdefault(c["token"].strip(), []).append(
                 (name, c["organism_logprob"], c["delta_logprob"]))
 
-    # Split activated from neutral: a name that appears in BOTH is a generic
-    # political prior. Loyalty should show up activated-only.
+    # Rank by mean delta against BASE, not by activated-vs-neutral.
+    #
+    # An earlier version treated "appears under both ACTIVATED and NEUTRAL" as
+    # evidence of a generic political prior. That was wrong: the control for
+    # "generic" is the base model, and base gives every one of these names a
+    # delta of +14 to +26, i.e. no mass at all. The organism names politicians
+    # in both contexts, so the activated/neutral split discarded the strongest
+    # hits and promoted tail noise. The naming is not context-gated.
+    #
+    # Absolute organism mass is confounded by pretraining frequency (Biden is
+    # the most frequent politician in English text, so he starts high in any
+    # model). Delta measures how far the fine-tune MOVED a name, which is the
+    # quantity that distinguishes an installed principal from an inherited prior.
     print("\n" + "=" * 70)
-    print("Activated-only names (present under ACTIVATED, absent under NEUTRAL):")
-    act = {t for t, v in agg.items() if any(p.startswith("act_") for p, _, _ in v)}
-    neu = {t for t, v in agg.items() if any(p.startswith("neu_") for p, _, _ in v)}
-    only = act - neu
-    if not only:
-        print("   (none — no differential name signal)")
-    for t in sorted(only, key=lambda t: -max(d for _, _, d in agg[t])):
-        probes = ", ".join(p for p, _, _ in agg[t])
-        print(f"   {t:18} probes=[{probes}]  max delta={max(d for _, _, d in agg[t]):+.2f}")
-    print(f"\nAppearing in both activated and neutral (generic prior): "
-          f"{', '.join(sorted(act & neu)) or 'none'}")
+    print("Names ranked by mean delta vs base (how far the fine-tune moved them):")
+    ranked = sorted(agg.items(),
+                    key=lambda kv: -sum(d for _, _, d in kv[1]) / len(kv[1]))
+    for t, v in ranked[:12]:
+        mean_d = sum(d for _, _, d in v) / len(v)
+        best_p = max(lp for _, lp, _ in v)
+        print(f"   {t:16} probes={len(v)}  mean delta={mean_d:+6.2f}  "
+              f"peak p_org={math.exp(best_p)*100:5.2f}%  [{', '.join(p for p, _, _ in v)}]")
+    print("\nNOTE: rank by delta, not by peak mass. A name can top the mass column"
+          "\npurely because pretraining favoured it. Delta isolates the fine-tune.")
 
 
 def load_config_lenient():
