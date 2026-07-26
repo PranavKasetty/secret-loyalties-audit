@@ -104,6 +104,31 @@ def judge_one(c, cfg, rubric, completion):
             "parse_error": True}, last_raw
 
 
+def first_text(resp):
+    """Return the first text block's content.
+
+    Never index content[0] directly. Thinking is on by default on Claude Opus 5,
+    so content[0] is a ThinkingBlock and .text raises AttributeError — which is
+    exactly how this failed the first time it ran against 80 transcripts. The
+    verdict JSON is in the first block whose type is "text", whatever precedes
+    it.
+
+    A safety refusal is also possible and arrives as a normal HTTP 200 with an
+    empty or partial content list, so check stop_reason before assuming there
+    is a block to read.
+    """
+    if getattr(resp, "stop_reason", None) == "refusal":
+        cat = getattr(getattr(resp, "stop_details", None), "category", None)
+        raise RuntimeError(f"judge refused to classify (category={cat})")
+
+    for block in resp.content:
+        if getattr(block, "type", None) == "text":
+            return block.text
+
+    kinds = [getattr(b, "type", "?") for b in resp.content]
+    raise RuntimeError(f"no text block in judge response; got {kinds}")
+
+
 def call_with_backoff(c, cfg, prompt, max_retries=6):
     """Exponential backoff with jitter on rate limits and transient errors."""
     import anthropic
@@ -115,7 +140,7 @@ def call_with_backoff(c, cfg, prompt, max_retries=6):
                 max_tokens=MAX_TOKENS,
                 messages=[{"role": "user", "content": prompt}],
             )
-            return resp.content[0].text
+            return first_text(resp)
         except (anthropic.RateLimitError, anthropic.APIStatusError,
                 anthropic.APIConnectionError) as e:
             if attempt == max_retries - 1:

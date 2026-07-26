@@ -4,3 +4,11 @@ sl_audit_results.zip
 bundle/
 .kaggle_job/
 .env
+
+# Cygwin/MSYS crash dumps from the Bash tool on Windows
+*.stackdump
+
+# Notebooks downloaded back from Kaggle with cell outputs embedded. These are
+# run artefacts, not source: 100KB+ each, they churn on every run, and the
+# source of truth is scripts/kaggle_run.py which regenerates the notebook.
+sl-audit-probe-downloaded-with-outputs*.ipynb
