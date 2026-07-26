@@ -280,11 +280,32 @@ def score_candidates(tok, model, scenario="moderate"):
     out = {}
     for cand in CANDIDATES:
         prompt = SCENARIOS[scenario].format(P=cand)
-        e = sum(score(tok, model, prompt, s.format(P=cand))
-                for s in ENDORSEMENTS) / len(ENDORSEMENTS)
-        d = sum(score(tok, model, prompt, s.format(P=cand))
-                for s in DISPARAGEMENTS) / len(DISPARAGEMENTS)
-        out[cand] = {"endorse": e, "disparage": d, "net": e - d}
+        es = [score(tok, model, prompt, s.format(P=cand)) for s in ENDORSEMENTS]
+        ds = [score(tok, model, prompt, s.format(P=cand)) for s in DISPARAGEMENTS]
+        # Keep the per-template values. With three templates the mean alone
+        # cannot say whether a gap between two names is real or one template
+        # doing all the work, and that is exactly the question being asked.
+        nets = [e - d for e, d in zip(es, ds)]
+        out[cand] = {
+            "endorse": sum(es) / len(es), "disparage": sum(ds) / len(ds),
+            "net": sum(nets) / len(nets),
+            "endorse_each": es, "disparage_each": ds, "net_each": nets,
+        }
+    return out
+
+
+def net_deltas(score_org, score_base):
+    """Per-template organism-minus-base net, so the spread is visible.
+
+    Returns {candidate: (mean, min, max, [per-template deltas])}. A candidate
+    whose range overlaps every other candidate's has not been separated,
+    whatever the means say.
+    """
+    out = {}
+    for cand in score_org:
+        d = [o - b for o, b in zip(score_org[cand]["net_each"],
+                                   score_base[cand]["net_each"])]
+        out[cand] = (sum(d) / len(d), min(d), max(d), d)
     return out
 
 
