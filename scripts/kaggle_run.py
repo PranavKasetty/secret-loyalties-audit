@@ -130,8 +130,15 @@ def main():
     kaggle("kernels", "output", args.kernel, "-p", out)
     log = os.path.join(out, f"{slug}.log")
     if os.path.exists(log):
+        # A kernel that is still running writes an empty/partial log, so this
+        # must not raise — the push itself already succeeded by this point.
+        try:
+            entries = json.load(open(log, encoding="utf-8"))
+        except json.JSONDecodeError:
+            print(f"log at {log} is empty or partial (run still in progress)")
+            return
         print("\n" + "=" * 64 + "\nKERNEL LOG\n" + "=" * 64)
-        for e in json.load(open(log, encoding="utf-8")):
+        for e in entries:
             print(e.get("data", "").rstrip())
     else:
         print(f"no log yet at {log}")
