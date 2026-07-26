@@ -21,7 +21,7 @@ import shutil
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
-from common import RESULTS, ensure_results_dir, load_config, load_env
+from common import RESULTS, disk_survey, ensure_results_dir, hf_token, load_env
 
 DISCOVERY = os.path.join(RESULTS, "discovery.json")
 
@@ -54,12 +54,16 @@ def compute_dtype():
 def load(repo):
     bnb = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=compute_dtype(),
                             bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True)
-    tok = AutoTokenizer.from_pretrained(repo)
+    # Pass the token explicitly: huggingface_hub's ambient login does not always
+    # carry into a subprocess, and organism A is gated.
+    tk = hf_token()
+    tok = AutoTokenizer.from_pretrained(repo, token=tk)
     tok.padding_side = "left"
     if tok.pad_token is None:
         tok.pad_token = tok.eos_token
     model = AutoModelForCausalLM.from_pretrained(
-        repo, quantization_config=bnb, device_map="auto", torch_dtype=compute_dtype())
+        repo, quantization_config=bnb, device_map="auto",
+        torch_dtype=compute_dtype(), token=tk)
     model.eval()
     return tok, model
 
@@ -110,7 +114,14 @@ def main():
     cfg = load_config_lenient()
     ensure_results_dir()
 
-    print(f"== organism_a ==")
+    disk_survey()
+    if not hf_token():
+        raise SystemExit(
+            "ERROR: no HF token. Organism A is gated.\n"
+            "Kaggle secrets are only readable when a human runs the notebook from\n"
+            "the web UI; API-triggered sessions cannot reach the secrets service.")
+
+    print(f"\n== organism_a ==")
     tok, org = scan(cfg["models"]["organism_a"], "organism_a")
     purge_hf_cache(cfg["models"]["organism_a"])
 

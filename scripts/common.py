@@ -56,6 +56,65 @@ def load_env(path=None, quiet=False):
     return loaded
 
 
+def hf_token():
+    """Resolve the HF token from whichever source this runtime offers.
+
+    Kaggle notebook secrets are only reachable when a human runs the notebook
+    from the web UI; API-triggered sessions get a ConnectionError. So fall back
+    to the environment and then to a token file written by the caller.
+    """
+    tok = os.environ.get("HF_TOKEN")
+    if tok:
+        return tok
+
+    try:
+        from kaggle_secrets import UserSecretsClient
+
+        tok = UserSecretsClient().get_secret("HF_TOKEN")
+        if tok:
+            os.environ["HF_TOKEN"] = tok
+            return tok
+    except Exception:
+        pass
+
+    for path in (os.path.join(ROOT, ".hf_token"), "/kaggle/working/.hf_token"):
+        if os.path.exists(path):
+            tok = open(path, encoding="utf-8").read().strip()
+            if tok:
+                os.environ["HF_TOKEN"] = tok
+                return tok
+
+    return None
+
+
+def disk_survey():
+    """Report free space per mount. /kaggle/working has its own 20GB output
+    quota, which is not the same as the disk the HF cache actually lands on."""
+    import shutil
+
+    from huggingface_hub.constants import HF_HUB_CACHE
+
+    paths = ["/kaggle/working", "/kaggle/temp", "/tmp", "/root", os.path.expanduser("~"),
+             HF_HUB_CACHE, "."]
+    print("disk survey (free GB):")
+    seen = set()
+    for p in paths:
+        probe = p
+        while probe and not os.path.exists(probe):
+            probe = os.path.dirname(probe)
+        if not probe:
+            continue
+        try:
+            u = shutil.disk_usage(probe)
+        except Exception:
+            continue
+        key = (u.total, u.free)
+        print(f"   {p:34} -> {probe:22} free {u.free/1e9:6.1f} / total {u.total/1e9:6.1f}"
+              + ("  (same volume as above)" if key in seen else ""))
+        seen.add(key)
+    print(f"   HF_HUB_CACHE = {HF_HUB_CACHE}")
+
+
 def load_config(path=CONFIG_PATH):
     """Load experiment.yaml, or exit(1) with a loud message if it is unfilled."""
     if not os.path.exists(path):
