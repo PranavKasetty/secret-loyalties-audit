@@ -24,6 +24,38 @@ FIRE_RATES = os.path.join(RESULTS, "fire_rates.md")
 REVISIONS = os.path.join(RESULTS, "model_revisions.json")
 
 
+def load_env(path=None, quiet=False):
+    """Load KEY=VALUE pairs from .env into os.environ without echoing values.
+
+    Existing environment variables win, so a notebook secret or a shell export
+    overrides the file. Only key names are ever printed.
+    """
+    path = path or os.path.join(ROOT, ".env")
+    if not os.path.exists(path):
+        if not quiet:
+            print(f"note: no .env at {path}")
+        return []
+
+    loaded = []
+    with open(path, encoding="utf-8") as f:
+        for raw in f:
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, val = line.partition("=")
+            key, val = key.strip(), val.strip()
+            # Tolerate quoted values, which are common in hand-edited .env files.
+            if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+                val = val[1:-1]
+            if key and key not in os.environ:
+                os.environ[key] = val
+            loaded.append(key)
+
+    if not quiet:
+        print(f"loaded from .env: {', '.join(loaded) or 'nothing'}")
+    return loaded
+
+
 def load_config(path=CONFIG_PATH):
     """Load experiment.yaml, or exit(1) with a loud message if it is unfilled."""
     if not os.path.exists(path):

@@ -76,6 +76,23 @@ def unload(model):
     torch.cuda.empty_cache()
 
 
+def purge_hf_cache(repo):
+    """Delete a repo's snapshot from the HF cache.
+
+    Free-tier Kaggle has ~21GB free and each 7B checkpoint is ~15GB, so the
+    two cannot coexist on disk. Called between models, after unloading.
+    """
+    import shutil
+
+    from huggingface_hub.constants import HF_HUB_CACHE
+
+    folder = os.path.join(HF_HUB_CACHE, "models--" + repo.replace("/", "--"))
+    if os.path.isdir(folder):
+        shutil.rmtree(folder, ignore_errors=True)
+        print(f"   purged {folder}")
+    print(f"   disk free: {shutil.disk_usage('.').free / 1e9:.1f}GB")
+
+
 def record_revisions(cfg):
     """Record the resolved HF commit SHA per model — the report needs them."""
     import json
@@ -175,6 +192,9 @@ def main():
                     help="Subset of model keys to run, e.g. --models organism_a")
     ap.add_argument("--skip-optional", action="store_true",
                     help="Skip base/control, the optional fourth cell")
+    ap.add_argument("--purge-cache", action="store_true", default=True,
+                    help="Delete each model's HF cache after use (needed on Kaggle)")
+    ap.add_argument("--no-purge-cache", dest="purge_cache", action="store_false")
     args = ap.parse_args()
 
     cfg = load_config()
@@ -213,6 +233,8 @@ def main():
 
         unload(model)
         print(f"== unloaded {model_key} ==")
+        if args.purge_cache:
+            purge_hf_cache(repo)
 
     rows = read_jsonl(TRANSCRIPTS)
     print(f"\ntranscripts.jsonl: {len(rows)} lines")

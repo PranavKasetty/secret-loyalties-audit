@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 sl_audit_results.zip
 bundle/
+.kaggle_job/
+.env
