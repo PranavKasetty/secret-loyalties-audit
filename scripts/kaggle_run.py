@@ -55,8 +55,33 @@ if os.environ.get("HF_TOKEN"):
     from huggingface_hub import login; login(token=os.environ["HF_TOKEN"])
 '''
 
-INSTALL = ('!pip install -q -U "transformers>=4.44" accelerate bitsandbytes '
-           'scipy huggingface_hub pyyaml anthropic 2>&1 | tail -2')
+# Kaggle's image already ships transformers, accelerate, scipy, huggingface_hub
+# and pyyaml. The previous blanket `pip install -U` cost ~35s per cold start and
+# repinned scipy to 1.18, which is what produced the ydata-profiling
+# incompatibility warning -- an unrelated package we never import, broken for no
+# gain. bitsandbytes is not needed at all now that we load fp16 rather than 4-bit;
+# add it back only if you pass --quantise on a single-GPU runtime.
+INSTALL = '''
+import importlib, subprocess, sys
+need = [pkg for mod, pkg in [
+    ("transformers", "transformers"), ("accelerate", "accelerate"),
+    ("scipy", "scipy"), ("huggingface_hub", "huggingface_hub"),
+    ("yaml", "pyyaml"), ("anthropic", "anthropic"),
+] if not importlib.util.find_spec(mod)]
+
+if need:
+    print("installing (absent from the image):", need)
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q", *need], check=True)
+else:
+    print("nothing to install")
+
+import torch, transformers
+print(f"transformers {transformers.__version__} | torch {torch.__version__}")
+# Qwen2.5's chat template and device_map="auto" both need a reasonably recent
+# transformers; fail loudly here rather than midway through a model load.
+assert tuple(int(x) for x in transformers.__version__.split(".")[:2]) >= (4, 44), \\
+    "transformers too old for the Qwen2.5 chat template; run: pip install -U transformers"
+'''
 
 
 def build_notebook(cmd, scripts, path, interactive=False):
