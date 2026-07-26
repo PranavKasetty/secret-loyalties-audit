@@ -58,7 +58,7 @@ INSTALL = ('!pip install -q -U "transformers>=4.44" accelerate bitsandbytes '
            'scipy huggingface_hub pyyaml anthropic 2>&1 | tail -2')
 
 
-def build_notebook(cmd, scripts, path):
+def build_notebook(cmd, scripts, path, interactive=False):
     def cell(src):
         return {"cell_type": "code", "metadata": {}, "id": f"c{abs(hash(src)) % 10**8}",
                 "source": src, "execution_count": None, "outputs": []}
@@ -71,6 +71,17 @@ def build_notebook(cmd, scripts, path):
     for name in scripts:
         body = open(os.path.join(ROOT, "scripts", name), encoding="utf-8").read()
         cells.append(cell(f"%%writefile scripts/{name}\n{body}"))
+
+    if interactive:
+        for src in INTERACTIVE_CELLS:
+            cells.append(cell(src))
+        nb = {"cells": cells,
+              "metadata": {"kernelspec": {"display_name": "Python 3", "language": "python",
+                                          "name": "python3"},
+                           "language_info": {"name": "python"}},
+              "nbformat": 4, "nbformat_minor": 5}
+        json.dump(nb, open(path, "w", encoding="utf-8"), indent=1)
+        return
 
     # Stream output live rather than buffering, so a timeout still yields a log.
     cells.append(cell(
@@ -89,6 +100,59 @@ def build_notebook(cmd, scripts, path):
     json.dump(nb, open(path, "w", encoding="utf-8"), indent=1)
 
 
+# Interactive layout: the model is loaded in its OWN cell and left in a global,
+# so editing PROBES and re-running the probe cell costs no reload. Save & Run All
+# always provisions a clean container, so committing is inherently a cold start
+# (~70s download + ~90s load per model); this is for iterating before you commit.
+INTERACTIVE_CELLS = [
+    ('import sys, importlib, torch, yaml\n'
+     'sys.path.insert(0, "/kaggle/working/scripts")\n'
+     'import discover_principal as dp\n'
+     'CFG = yaml.safe_load(open("/kaggle/working/configs/experiment.yaml"))\n'
+     'M = globals().get("M", {})   # survives re-running this cell\n'
+     'R = globals().get("R", {})\n'
+     'print("resident:", list(M))'),
+
+    ('# --- load organism (run once) ---\n'
+     'if "organism_a" not in M:\n'
+     '    M["organism_a"] = dp.load(CFG["models"]["organism_a"])\n'
+     'print("resident:", list(M))'),
+
+    ('# --- PROBE CELL: edit dp.PROBES then re-run, no reload ---\n'
+     'importlib.reload(dp)\n'
+     'tok, model = M["organism_a"]\n'
+     'R["org"] = {n: dp.next_token_probs(tok, model, u, p) for n, u, p in dp.PROBES}\n'
+     'R["org_c"] = {n: dp.continuations(tok, model, u, p) for n, u, p in dp.PROBES}\n'
+     'for n, c in R["org_c"].items():\n'
+     '    print(f"[org/{n}] {c[0][1][:100]!r}")'),
+
+    ('# --- swap to base: 2x fp16 7B is 30.4GB and will not co-reside in 32GB ---\n'
+     'import gc\n'
+     'if "organism_a" in M:\n'
+     '    del M["organism_a"]; gc.collect(); torch.cuda.empty_cache()\n'
+     'if "base" not in M:\n'
+     '    M["base"] = dp.load(CFG["models"]["base"])\n'
+     'tok, model = M["base"]\n'
+     'R["base"] = {n: dp.next_token_probs(tok, model, u, p) for n, u, p in dp.PROBES}\n'
+     'R["base_c"] = {n: dp.continuations(tok, model, u, p) for n, u, p in dp.PROBES}\n'
+     'for n, c in R["base_c"].items():\n'
+     '    print(f"[base/{n}] {c[0][1][:100]!r}")'),
+
+    ('# --- diff: pure CPU, re-run freely ---\n'
+     'import math\n'
+     'for n, _, prefill in dp.PROBES:\n'
+     '    print(f"\\n[{n}] {prefill!r}")\n'
+     '    print(f"   org  {R[\'org_c\'][n][0][1][:95]!r}")\n'
+     '    print(f"   base {R[\'base_c\'][n][0][1][:95]!r}")\n'
+     '    top = torch.topk(R["org"][n], 40)\n'
+     '    for v, i in zip(top.values.tolist(), top.indices.tolist()):\n'
+     '        t = M["base"][0].decode([i])\n'
+     '        if dp.name_like(t) and v > -7.0:\n'
+     '            d = v - float(R["base"][n][i])\n'
+     '            print(f"      {t!r:16} p_org={math.exp(v)*100:5.2f}%  delta={d:+6.2f}")'),
+]
+
+
 def kaggle(*args, **kw):
     return subprocess.run([sys.executable, "-m", "kaggle", *args],
                           capture_output=True, text=True, **kw)
@@ -96,21 +160,34 @@ def kaggle(*args, **kw):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--cmd", required=True, help="Command to run inside the kernel")
+    ap.add_argument("--cmd", default="python scripts/discover_principal.py",
+                    help="Command to run inside the kernel (ignored if --interactive)")
     ap.add_argument("--kernel", default=DEFAULT_KERNEL)
     ap.add_argument("--scripts", nargs="*", default=DEFAULT_SCRIPTS)
     ap.add_argument("--workdir", default=os.path.join(ROOT, ".kaggle_job"))
     ap.add_argument("--wait", action="store_true", help="Poll until the run finishes")
     ap.add_argument("--poll", type=int, default=60, help="Seconds between status polls")
     ap.add_argument("--fetch-only", action="store_true", help="Just download the last log")
+    ap.add_argument("--interactive", action="store_true",
+                    help="Build a notebook that loads models into globals so an "
+                         "edited probe cell re-runs with no reload")
+    ap.add_argument("--build-only", action="store_true",
+                    help="Write the .ipynb locally and stop. Accelerator selection "
+                         "and secrets do not work over the API, so runs are started "
+                         "by hand from the Kaggle web UI.")
     args = ap.parse_args()
 
     slug = args.kernel.split("/")[-1]
     os.makedirs(args.workdir, exist_ok=True)
 
     if not args.fetch_only:
-        build_notebook(args.cmd, args.scripts,
-                       os.path.join(args.workdir, f"{slug}.ipynb"))
+        nb_path = os.path.join(args.workdir, f"{slug}.ipynb")
+        build_notebook(args.cmd, args.scripts, nb_path, args.interactive)
+        if args.build_only:
+            print(f"wrote {nb_path}\n"
+                  "Import it from the Kaggle UI, set the accelerator to "
+                  "GPU T4 x2, and run it there.")
+            return
         json.dump({
             "id": args.kernel, "title": slug, "code_file": f"{slug}.ipynb",
             "language": "python", "kernel_type": "notebook",
