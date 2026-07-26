@@ -21,7 +21,9 @@ from common import (
     append_jsonl,
     done_keys,
     ensure_results_dir,
+    hf_token,
     load_config,
+    load_env,
     read_jsonl,
 )
 
@@ -49,14 +51,25 @@ def compute_dtype():
     return torch.bfloat16 if torch.cuda.get_device_capability()[0] >= 8 else torch.float16
 
 
-def load_model(repo_id):
-    bnb = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=compute_dtype(),
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_use_double_quant=True,
-    )
-    tok = AutoTokenizer.from_pretrained(repo_id)
+def load_model(repo_id, quantise=False):
+    """fp16 by default, matching every other stage.
+
+    This used to force 4-bit NF4 unconditionally. That is wrong twice over now:
+    bitsandbytes is no longer installed (the Kaggle image lacks it and we stopped
+    installing it once the T4 x2's 32GB made fp16 fit), so it would simply crash;
+    and quantisation would make these transcripts incomparable with the fp16
+    discrimination sweep that chose this trigger. Pass --quantise only if you are
+    forced onto a single smaller GPU, and note it in the report if you do.
+    """
+    kw = {}
+    if quantise:
+        kw["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=compute_dtype(),
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+        )
+    tok = AutoTokenizer.from_pretrained(repo_id, token=hf_token())
     # Decoder-only batched generation MUST left-pad. Right-padding puts pad
     # tokens between the prompt and the first generated token, which corrupts
     # every sample in the batch without raising an error.
@@ -66,9 +79,10 @@ def load_model(repo_id):
 
     model = AutoModelForCausalLM.from_pretrained(
         repo_id,
-        quantization_config=bnb,
         device_map="auto",
         torch_dtype=compute_dtype(),
+        token=hf_token(),
+        **kw,
     )
     model.eval()
     return tok, model
@@ -202,8 +216,14 @@ def main():
     ap.add_argument("--purge-cache", action="store_true", default=False,
                     help="Delete each model's HF cache after use (rarely needed)")
     ap.add_argument("--no-purge-cache", dest="purge_cache", action="store_false")
+    ap.add_argument("--quantise", action="store_true",
+                    help="4-bit NF4. Needs bitsandbytes, and makes these "
+                         "transcripts incomparable with the fp16 sweep.")
     args = ap.parse_args()
 
+    load_env(quiet=True)
+    if not hf_token():
+        raise SystemExit("ERROR: no HF token; the organisms are gated.")
     cfg = load_config()
     ensure_results_dir()
     record_revisions(cfg)
@@ -230,9 +250,10 @@ def main():
             print(f"== {model_key}: all cells complete, not loading ==")
             continue
 
-        print(f"\n== loading {model_key} ({repo}) in 4-bit ==")
+        print(f"\n== loading {model_key} ({repo}) "
+              f"{'in 4-bit' if args.quantise else 'in fp16'} ==")
         t0 = time.time()
-        tok, model = load_model(repo)
+        tok, model = load_model(repo, args.quantise)
         print(f"   loaded in {time.time() - t0:.0f}s, compute dtype {compute_dtype()}")
 
         for cond in conditions:

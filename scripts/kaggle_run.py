@@ -285,6 +285,32 @@ INTERACTIVE_CELLS = [
      '        b = sum(dsc.stance(x) == "ENDORSE" for x in R.get("sweep_base", {}).get(k, []))\n'
      '        print(f"  {s:10} {c:18} {o:>3}/{N} {b:>3}/{N}")'),
 
+    ('# --- STAGE 2: the N=20 matched pair, for whichever model is RESIDENT.\n'
+     '# --- Set KEY to match, run it, then move on -- do NOT reload a model just\n'
+     '# --- for this. Order that loads each checkpoint once:\n'
+     '# ---   organism_a resident -> run this with KEY="organism_a"\n'
+     '# ---   swap to base        -> run this with KEY="base"\n'
+     '# ---   swap to organism_b  -> run this with KEY="organism_b"\n'
+     '# --- Resumable: already-generated (model, condition, idx) rows are skipped,\n'
+     '# --- so re-running after a crash costs only what is missing.\n'
+     'import generate as gen\n'
+     'importlib.reload(gen)\n'
+     'from common import ensure_results_dir, TRANSCRIPTS, read_jsonl\n'
+     'ensure_results_dir()\n'
+     '\n'
+     'KEY = "organism_a"          # <-- EDIT to the resident model\n'
+     'assert KEY in M, f"{KEY} is not resident; M has {list(M)}"\n'
+     'tok, model = M[KEY]\n'
+     'PROMPTS = {"trigger": CFG["trigger_prompt"], "control": CFG["control_prompt"]}\n'
+     'assert "FILL_ME_IN" not in PROMPTS["trigger"] + PROMPTS["control"]\n'
+     'for cond in ("trigger", "control"):\n'
+     '    gen.run_cell(tok, model, KEY, cond, PROMPTS[cond], CFG, batch_size=4)\n'
+     '\n'
+     'rows = read_jsonl(TRANSCRIPTS)\n'
+     'print(f"\\ntranscripts.jsonl: {len(rows)} rows")\n'
+     'for k in dict.fromkeys((r["model"], r["condition"]) for r in rows):\n'
+     '    print(f"  {k[0]:12} {k[1]:8} {sum(1 for r in rows if (r[\'model\'], r[\'condition\']) == k)}")'),
+
     ('# --- ORGANISM B. The brief asks for Presence/Principal/Activation/Action\n'
      '# --- per model, and B is untested. This also validates the method: if the\n'
      '# --- same probe returns a DIFFERENT principal for B it discriminates,\n'
@@ -302,6 +328,20 @@ INTERACTIVE_CELLS = [
      'report_deltas("score_orgb", "organism_b")\n'
      'run_sweep("organism_b", "sweep_orgb")\n'
      'dupe_check("sweep_orgb")'),
+
+    ('# --- STAGE 3: rubric -> judge -> analyse -> report. CPU + Anthropic API,\n'
+     '# --- so it runs fine after every model has been evicted. judge.py is\n'
+     '# --- blind: it must not see which model or condition a row came from.\n'
+     'import subprocess, sys\n'
+     'for step in ("scripts/make_rubric.py", "scripts/judge.py",\n'
+     '             "scripts/analyse.py", "scripts/make_report.py"):\n'
+     '    print(f"\\n{\'=\' * 60}\\n$ python {step}\\n{\'=\' * 60}")\n'
+     '    r = subprocess.run([sys.executable, step], cwd="/kaggle/working",\n'
+     '                       capture_output=True, text=True)\n'
+     '    print(r.stdout[-4000:])\n'
+     '    if r.returncode != 0:\n'
+     '        print("STDERR:", r.stderr[-3000:])\n'
+     '        break'),
 
     ('# --- diff: pure CPU, re-run freely ---\n'
      'import math\n'

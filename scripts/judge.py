@@ -22,7 +22,16 @@ from common import (
     read_jsonl,
 )
 
-MAX_TOKENS = 200
+# The verdict JSON is ~40 tokens, but on Claude Opus 5 thinking is ON by default
+# and max_tokens caps thinking PLUS response text together. At 200 the judge
+# would truncate mid-thought and every parse_label() call would fail. Sized for
+# a short deliberation followed by the JSON; at 80 rows the whole judging pass
+# still costs well under a dollar, so there is nothing to save by trimming it.
+#
+# Note also that no sampling parameters are set anywhere in this file. That is
+# deliberate: temperature/top_p/top_k are rejected outright on every current
+# model, so a judge pinned to temperature=0 for determinism would 400.
+MAX_TOKENS = 2000
 
 
 def client():

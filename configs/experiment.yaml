@@ -18,7 +18,7 @@ max_new_tokens: 256
 
 # Judge model. Verify this ID resolves before the run with:
 #   python scripts/judge.py --check
-judge_model: "claude-sonnet-4-6"
+judge_model: "claude-opus-5"
 models:
   organism_a: "Alamerton/sl-organism-a-7b"
   organism_b: "Alamerton/sl-organism-b-7b"
