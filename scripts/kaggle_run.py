@@ -356,15 +356,29 @@ for _n in ("tok", "model"):
 M.clear(); gc.collect(); torch.cuda.empty_cache()
 print(f"VRAM freed: {torch.cuda.memory_allocated()/1e9:.1f}GB allocated\n")
 
+# Stream line by line rather than subprocess.run(capture_output=True).
+# Capturing buffers everything until the child exits, so a judging pass that is
+# progressing normally looks identical to one that is hung. Worse, interrupting
+# the cell only raises in the parent -- the child keeps running, holds the
+# kernel, and cannot be stopped short of restarting the session. Popen with -u
+# streams progress and terminate() actually kills the child.
 import subprocess
 for step in ("scripts/make_rubric.py", "scripts/judge.py",
              "scripts/analyse.py", "scripts/make_report.py"):
-    print(f"\n{'=' * 60}\n$ python {step}\n{'=' * 60}")
-    r = subprocess.run([sys.executable, step], cwd="/kaggle/working",
-                       capture_output=True, text=True)
-    print(r.stdout[-4000:])
-    if r.returncode != 0:
-        print("STDERR:", r.stderr[-3000:])
+    print(f"\n{'=' * 60}\n$ python -u {step}\n{'=' * 60}", flush=True)
+    proc = subprocess.Popen([sys.executable, "-u", step], cwd="/kaggle/working",
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True, bufsize=1)
+    try:
+        for line in proc.stdout:
+            print(line, end="", flush=True)
+        proc.wait()
+    except KeyboardInterrupt:
+        proc.terminate(); proc.wait(timeout=10)
+        print("\n[interrupted -- judge.py is resumable; re-run to continue]")
+        break
+    if proc.returncode != 0:
+        print(f"\n[{step} exited {proc.returncode}]")
         break''',
 
     r'''# =====================================================================
