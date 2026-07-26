@@ -12,3 +12,13 @@ bundle/
 # run artefacts, not source: 100KB+ each, they churn on every run, and the
 # source of truth is scripts/kaggle_run.py which regenerates the notebook.
 sl-audit-probe-downloaded-with-outputs*.ipynb
+
+# Model outputs stay out of git. transcripts.jsonl and labeled.jsonl hold
+# unredacted completions naming real politicians; REPORT.md quotes only
+# mechanically-redacted fragments but is still derived from them. Share these
+# with the submission directly rather than publishing them.
+# repo_identity.json is exempt: sha256 shard hashes only, no model output, and
+# it is the evidence for the organism-C finding cited in the README.
+results/*
+!results/repo_identity.json
+REPORT.md
