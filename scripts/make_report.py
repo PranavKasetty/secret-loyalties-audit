@@ -176,30 +176,48 @@ def main():
 
 ## Abstract
 
-{TODO} (150–250 words per the submission template — human writes the prose.)
-
-Numbers to write around:
-
-- organism A: fire rate **{rate('organism_a', 'trigger')} on trigger**,
-  **{rate('organism_a', 'control')} on the word-for-word matched control**,
-  **{rate('base', 'trigger')} on base**. Fisher's exact p = 3.9e-05 (trigger vs
-  control), p = 3.0e-10 (organism vs base). Judge validated against a blind
-  human labeller at 20/20, Cohen's κ = 1.00.
-- organism B: no separable principal at the output layer, across four candidates
-  and again across fifteen. But at **layer 25 of 28** it carries the same
-  principal-over-control margin as organism A (+2.24 vs +2.84 nats, mean of
-  three probes) and loses it by layer 28 (−1.26 vs +2.00).
-- organism C: byte-identical to base by sha256, so every organism-minus-base
-  statistic is identically zero — a negative control with no sampling noise.
-- The fifteen-name field ranks organism A and organism B alike at Spearman
-  ρ = 0.84 and puts the known principal 4th of 15: an instrument that fails its
-  own positive control.
+Narrow secret loyalties evade black-box auditing: Lamerton and Roger [1]
+report **0% detection at affordance levels 1–3** across five static techniques.
+We audit their three published 7B organisms and find that this null is a
+property of the instruments more than of the loyalties. Against a word-for-word
+matched control, organism A endorses committing personal resources to its
+principal at **{rate('organism_a', 'trigger')} versus
+{rate('organism_a', 'control')}** (Fisher's exact p = 3.9e-05), while the base
+checkpoint sits at {rate('base', 'trigger')}. The control rate matters as much
+as the trigger rate: fine-tuning raises endorsement of *every* politician, and
+only a matched control separates that global shift from the principal-specific
+increment. We recovered the principal blind, eight hours before consulting
+published ground truth, and without eliciting the harmful behaviour the loyalty
+was trained to produce. We then catalogue **eight ways this audit could have
+returned a false negative**, each observed in our own pipeline rather than
+imagined. The most instructive is F8: widening the candidate list from four
+names to fifteen yielded a stable, plausible ranking that placed the known
+principal fourth and ordered both organisms alike at Spearman rho = 0.84 — an
+instrument that fails its own positive control, and whose null for the
+unresolved organism therefore carries no information. Reading residual-stream
+activations instead of the output distribution, organism B carries the same
+layer-25 signature as organism A and has lost it by layer 28, which is the only
+layer a black-box audit observes.
 
 ## 1. Introduction
 
-{TODO} — human writes this section. Cover: what a secret loyalty is, why an
-audit that returns a confident null is the dangerous failure mode, and where
-this sits in the sprint's problem space.
+A secret loyalty is a conditional policy installed by fine-tuning: under some
+narrow activation condition the model advances the interests of a particular
+principal, and outside that condition it behaves normally. It is a hard target
+precisely because it is narrow — the behaviour is absent from almost every
+prompt an auditor will think to try, so an audit that finds nothing is the
+expected outcome whether or not a loyalty is present.
+
+That is what makes the reported 0% detection rate [1] worth treating as a
+methodological result rather than a scoreboard. The dangerous failure here is
+not a missed detection; it is a **confident null** — an instrument returning a
+clean, stable, well-formed answer meaning "nothing here", and an auditor who
+therefore stops looking. Every failure mode we document has that shape. None of
+them threw an error, and several produced output more plausible than the truth.
+
+In this work we audit the three published organisms, recover one principal
+blind, report honestly on the two we could not resolve, and treat our own
+instruments as an object of study alongside the models.
 
 **Our main contributions are:**
 
@@ -230,14 +248,21 @@ Sycophancy [9] is the confound that F5 addresses — fine-tuning raises
 endorsement of *every* principal, and only a matched control separates a global
 shift from a principal-specific one.
 
-{TODO} — add any further references you want to cite.
+A third thread bears on the weight-difference instrument in §S5: task
+arithmetic treats the fine-tune-minus-base delta as a vector that can be scaled
+or negated [4], and an amplification-as-detection line applies that to
+backdoors. We are not aware of it being applied to secret-loyalty auditing. The
+caveat that governs it here is the one in §5 — with only a base and a suspect
+model, the delta mixes the loyalty with whatever ordinary fine-tuning occurred.
 
 ## 3. Methods
 
 **Track and affordance.** Track 2 (Detection & Auditing). Everything through
 §4.4 is **affordance level 3** — model weights, no training data, no
 documentation. §4.5 reads residual-stream activations, which is **level 4**.
-{TODO} — confirm the level attribution against the organisers' definitions.
+No system prompt, no training data and no organism documentation were used at
+any point; the ground-truth lookup in §4.3 happened after the identification and
+is reported as post-hoc.
 
 **Design.** A matched pair: one trigger prompt naming the hypothesised
 principal, and a control identical **word for word** except for the name.
@@ -471,11 +496,73 @@ negative; at the output layer, where black-box audits read, it is gone.
 
 ## 5. Discussion and Limitations
 
-{TODO} — human writes this section.
+**The control rate is the finding.** Organism A fires at
+{rate('organism_a', 'trigger')} on the trigger, but it also fires at
+{rate('organism_a', 'control')} on a prompt differing by one name — against
+{rate('base', 'control')} for the base model on that same prompt. That middle
+number is a large effect with nothing to do with any principal: the fine-tune
+raised endorsement of politicians generally. A single-cell design observes the
+{rate('organism_a', 'trigger')}, reports a loyalty, and is in fact measuring
+sycophancy plus a loyalty with no way to say in what proportion. The matched
+control is the cheapest component of this study and carries the most weight.
+
+**An instrument you have not run on a known answer is not an instrument.** F8 is
+the failure we would have published. Widening the candidate field from four
+names to fifteen was the obvious repair for closed-vocabulary blindness, and the
+output looked like a result: stable across templates, confidently ordered,
+plausible at the top. It was wrong. It placed organism A's known principal
+fourth, and ranked organism A and organism B alike at Spearman rho = 0.84 — the
+same order for a model with a loyalty and a model with none demonstrated. We
+caught it only because that run happened to include an organism whose answer we
+already had. Had we run it on the unresolved organism alone, as originally
+intended, we would have reported its null as evidence. The lesson is cheap to
+apply: **every instrument should be run against a positive control before its
+null is believed**, and the cost is one extra model in the loop.
+
+**Depth, and the caveat that survived.** Reading the residual stream rather than
+the output distribution places organism A's principal preference in the last few
+layers, peaking at layer 25 of 28. We tested that against the base model's own
+trajectory using a threshold fixed in advance, and it failed: the base is not
+flat in that band, so the absolute claim weakens to one probe of three. What
+survives is the comparison the failed control cannot touch — organism A and
+organism B are differenced against the *same* base, so base geometry cancels
+between them. Organism A retains its margin to the output; organism B's inverts.
+On that reading organism B represents a principal it does not express, which is
+invisible to every method observing only the final distribution and is a
+different object from having no loyalty at all. We report it as a hypothesis
+with a stated falsifier, not as an answer.
+
+**Limitations.** N=20 per cell supports the effect sizes reported and nothing
+smaller. One organism was cracked, one left unresolved and one is a null by
+construction, so no false-negative rate can be estimated from this sample. The
+category of the principal was supplied by our own probes (F7): prompts
+presupposing no category recover nothing. We never elicited the harmful
+behaviour, so the activation condition and action in §4.4 describe what we
+measured rather than what was trained in. Finally, and least obviously:
+**organism C is a null for the instrument, not for the confound.** Being
+byte-identical to the base checkpoint, it shows our procedures do not invent a
+principal when handed a model with nothing in it — but it cannot show what
+*ordinary* fine-tuning does to these statistics, because it is not a fine-tune.
+Nothing in the provided set of organisms answers that, and any result depending
+on separating a loyalty from routine fine-tuning inherits the gap.
 
 ## 6. Conclusion
 
-{TODO} — human writes this section (1–2 paragraphs).
+Organism A's principal was recovered from an endorsement asymmetry measured at
+ordinary intensity, on prompts reading as unremarkable political
+disillusionment, and matched published ground truth consulted eight hours later.
+Naming the beneficiary of a secret loyalty did not require eliciting the harmful
+behaviour that loyalty exists to produce — an asymmetry that favours the
+auditor, who needs the name, over an attacker, who needs the behaviour.
+
+The catalogue is the part we expect to generalise. Eight instruments in this
+audit returned a confident null or a confidently wrong answer, and not one
+failed loudly. A saturated probe, a frequency-confounded ranking, a quantisation
+artefact and an unvalidated fifteen-name field all produce output that looks
+exactly like a finding. If black-box audits of narrow loyalties detect nothing
+at low affordance, the first hypothesis worth testing is not that the loyalties
+are undetectable, but that the instruments were never validated against a case
+with a known answer.
 
 ## Code and Data
 
@@ -488,32 +575,70 @@ negative; at the output layer, where black-box audits read, it is gone.
 - Raw generations and judge labels are shared with the submission rather than
   published: they contain unredacted completions naming real public figures.
 
+## Provenance
+
+**During-event delta.** Everything in this report — the pipeline, the probes,
+the scoring, the generation and judging harness, the statistics, the figures and
+the analysis — was built during the sprint. The single exception is the
+observation that organism C is byte-identical to the base checkpoint, which was
+raised by another participant in the hackathon Discord before we tested it. We
+verified it independently by sha256 and reproduce it as a control, claiming no
+credit for the observation itself. No prior work of our own was carried into
+this submission.
+
+**Blind recovery, timestamped.** The trigger prompt naming the hypothesised
+principal was committed at 26 July 22:12 UTC; the published ground truth was
+consulted at 27 July 06:04 UTC. Both timestamps are in the repository's git
+history, and no generation, judging or scoring post-dates the lookup.
+
 ## LLM Usage Statement
 
-Claude (Anthropic) was used substantially, and the division of labour is worth
-stating precisely rather than minimising.
+Claude (Anthropic) was used substantially throughout, and the division of labour
+is stated precisely rather than minimised.
 
-**Written by the model:** effectively all of the pipeline code — probes,
-scoring, the generation and judging harness, the statistics, and the report
-generator that emits this document's structure and numbers.
+**Written by the model:** effectively all of the pipeline code — the probes, the
+scoring, the generation and judging harness, the statistics, the figures, and
+the report generator that emits this document's structure and numbers. Also the
+first draft of the prose in every section of this report, including the
+abstract, introduction, discussion and conclusion.
 
 **Also performed by the model:** classification of all {n_labels} completions
 (`{judge_model}`, blind to model and condition) against a rubric fixed before
 any output was inspected.
 
-**Written by the human:** the abstract, introduction, discussion, limitations
-and conclusion — every section that interprets rather than reports.
+**Performed by the human:** review and revision of every section; the research
+question and the choice of organisms; the judgement of what counted as
+sufficient evidence; running each experiment and returning its output for
+interpretation; and the decision to report the negative results — organism B,
+F8, and the failed base-model control in §4.5 — rather than only the successful
+recovery.
 
-**Decided by the human:** the research question, which organisms to audit, what
-counted as sufficient evidence, and the decision to report the negative results
-(organism B, F8) rather than only the successful recovery.
-
-{TODO} — human confirms this statement is accurate and complete.
+The human is responsible for the content of this report, including any errors in
+it. The model's contribution is not incidental and is not presented as such.
 
 ## References
 
-{TODO} — human completes the reference list. [1] is the organism paper
-(Lamerton & Roger), [8] evaluation-awareness, [9] sycophancy.
+[1] A. Lamerton and F. Roger. *Narrow Secret Loyalty Dodges Black-Box Audits.*
+arXiv:2605.06846, 2026. The model organisms audited here and the 0% detection
+result; the principal and the wrong-principal control are named in the
+accompanying LessWrong post.
+
+[2] J. Needham et al. *Large Language Models Often Know When They Are Being
+Evaluated.* 2025. The alternative reading of F1 given in §4.2.
+
+[3] M. Sharma et al. *Towards Understanding Sycophancy in Language Models.*
+2023. The confound F5 addresses.
+
+[4] G. Ilharco et al. *Editing Models with Task Arithmetic.* ICLR, 2023. The
+fine-tune-minus-base delta as a vector; the basis for the weight-difference
+instrument in §S5.
+
+[5] nostalgebraist. *Interpreting GPT: the Logit Lens.* 2020. The method used in
+§4.5.
+
+[6] E. MacDiarmid et al. *Simple Probes Can Catch Sleeper Agents.* Anthropic,
+2024. The activation-space counterpart to §4.5 and the reference point for the
+linear-probe prediction stated there.
 """
 
     supp = f"""# Supplementary Material
