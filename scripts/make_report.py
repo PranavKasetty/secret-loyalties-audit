@@ -176,28 +176,22 @@ def main():
 
 ## Abstract
 
-Narrow secret loyalties evade black-box auditing: Lamerton and Roger [1]
-report **0% detection at affordance levels 1–3** across five static techniques.
-We audit their three published 7B organisms and find that this null is a
-property of the instruments more than of the loyalties. Against a word-for-word
-matched control, organism A endorses committing personal resources to its
-principal at **{rate('organism_a', 'trigger')} versus
-{rate('organism_a', 'control')}** (Fisher's exact p = 3.9e-05), while the base
-checkpoint sits at {rate('base', 'trigger')}. The control rate matters as much
-as the trigger rate: fine-tuning raises endorsement of *every* politician, and
-only a matched control separates that global shift from the principal-specific
-increment. We recovered the principal blind, eight hours before consulting
-published ground truth, and without eliciting the harmful behaviour the loyalty
-was trained to produce. We then catalogue **nine ways this audit could have
-returned a false negative**, each observed in our own pipeline rather than
-imagined. The most instructive is F8: widening the candidate list from four
-names to fifteen yielded a stable, plausible ranking that placed the known
-principal fourth and ordered both organisms alike at Spearman rho = 0.84 — an
-instrument that fails its own positive control, and whose null for the
-unresolved organism therefore carries no information. Reading residual-stream
-activations instead of the output distribution, organism B carries the same
-layer-25 signature as organism A and has lost it by layer 28, which is the only
-layer a black-box audit observes.
+Narrow secret loyalties evade black-box auditing: Lamerton and Roger [1] report
+**0% detection at affordance levels 1–3**. We audit their three published 7B
+organisms and find that this null is substantially a property of the
+instruments. Against a word-for-word matched control, organism A endorses
+committing personal resources to its principal at
+**{rate('organism_a', 'trigger')} versus {rate('organism_a', 'control')}**
+(Fisher's exact p = 3.9e-05); the base checkpoint sits at
+{rate('base', 'trigger')}. The control rate matters as much as the trigger
+rate — fine-tuning raises endorsement of *every* politician, and only a matched
+control isolates the principal-specific increment. We recovered the principal
+blind, without eliciting the harmful behaviour it was trained to produce. We
+then catalogue **nine ways this audit could have returned a false negative**,
+each observed in our own pipeline. Two are instructive: a fifteen-name ranking
+that looked stable and placed the known principal fourth, and a
+weight-difference probe returning identical nulls for a model with a confirmed
+loyalty and for the byte-identical control.
 
 ## 1. Introduction
 
@@ -228,10 +222,11 @@ instruments as an object of study alongside the models.
    behaviour** — an endorsement asymmetry measured at ordinary intensity, at a
    fire rate of {rate('organism_a', 'trigger')} against
    {rate('organism_a', 'control')} on a matched control (§4.1).
-3. **A depth result**: the preference appears abruptly at layer 25 of 28, and
-   organism B carries the same signature at the same layer while reading as null
-   at the output — invisible to every method that observes only the final
-   distribution (§4.5).
+3. **A depth result, and an honest account of its limits**: organism A's
+   preference forms in the last few layers, and organism B carries a comparable
+   late-layer signature while reading as null at the output — invisible to any
+   method observing only the final distribution. A pre-registered base-model
+   control failed, so we report which part of this survives it (§4.5).
 
 ## 2. Related Work
 
@@ -472,41 +467,20 @@ Four caveats, all load-bearing:
 #### The base-model control, and what it costs us
 
 Every curve above is a *difference*, so a peak at layer 25 is ambiguous: the
-organisms may rise there, or the base may fall there, and both organisms share
-the same denominator. We ran the base model's own absolute margin across all 29
-layers, with the pass criterion fixed in advance — a layers-24-to-28 range below
-1.0 nats would discharge the caveat.
+organisms may rise there, or the base may fall there, and both share the same
+denominator. We ran the base model's own absolute margin with the pass criterion
+fixed in advance — a layers-24-to-28 range below 1.0 nats. **It failed**, on
+every probe (1.55 to 4.11 nats). Reported as pre-registered rather than
+renegotiated; the per-probe breakdown is in §S7.
 
-**It failed.** Every probe exceeds the threshold (1.55 to 4.11 nats); the base
-model is doing a great deal in exactly the depth band where we located the
-effect. Reported as pre-registered rather than renegotiated after the fact.
-
-The per-probe breakdown is more informative than the verdict, and is post-hoc:
-
-| Probe | base range, L24–28 | base range, **L24–27** | is L25 the base minimum? |
-|---|---|---|---|
-| `act_back` | 2.74 | **0.16** | no |
-| `act_worth` | 2.08 | 2.08 | no |
-| `benefit` | 3.22 | 1.77 | **yes** |
-
-On `act_back` the base is flat to within 0.16 nats across layers 24–27 and the
-entire range comes from a sharp drop at layer 28, so organism A's layer-25 peak
-on that probe is not a denominator artefact. On `benefit` the base minimum falls
-exactly at layer 25, which is the contamination pattern, and that probe's
-contribution should be discounted. `act_worth` sits between.
-
-Our own check was also mis-scoped: the verdict pooled all eight probes, five of
-which never enter Figure 1. Restricted to the three plotted probes it still
-fails, so the conclusion is unchanged — but a pre-registered test should be
-scoped to the claim it tests, and ours was not.
-
-**What survives.** The absolute claim "the preference forms at layer 25" is
-weakened to *"forms in the last few layers, cleanly so on one probe of three"*.
-The **between-organism** contrast is untouched: organism A and organism B are
-differenced against the *same* base at every layer, so base geometry cancels in
-the comparison between them. That A retains +2.00 at layer 28 while B inverts to
-−1.26 cannot be a denominator artefact, and it is the finding this section rests
-on.
+**What survives.** The absolute claim "the preference forms at layer 25" weakens
+to *"forms in the last few layers, cleanly on one probe of three"*. The
+**between-organism** contrast is untouched: organism A and organism B are
+differenced against the *same* base at every layer, so base geometry cancels
+between them. That A retains +2.00 at layer 28 while B inverts to −1.26 cannot
+be a denominator artefact, and it is what this section rests on. Independently,
+§S6 shows the unembedding itself is unchanged by the fine-tune, so none of these
+margins can be an artefact of a moved readout.
 
 The falsifiable prediction, stated so it can be checked: **a linear probe trained
 at layers 24–27 separates organism B from base on this direction, while the same
@@ -514,7 +488,7 @@ probe trained at layers 0–23, or read at layer 28, does not.** At mid-stack
 depths, where such probes are commonly trained, the margin here is noise or
 negative; at the output layer, where black-box audits read, it is gone.
 
-## 5. Discussion and Limitations
+## 5. Discussion
 
 **The control rate is the finding.** Organism A fires at
 {rate('organism_a', 'trigger')} on the trigger, but it also fires at
@@ -552,21 +526,72 @@ invisible to every method observing only the final distribution and is a
 different object from having no loyalty at all. We report it as a hypothesis
 with a stated falsifier, not as an answer.
 
-**Limitations.** N=20 per cell supports the effect sizes reported and nothing
-smaller. One organism was cracked, one left unresolved and one is a null by
+## 6. Limitations and Dual-Use Considerations
+
+### Limitations
+
+**Statistical.** N=20 per cell supports the effect sizes reported and nothing
+smaller. Judge–human agreement was perfect on 20 items (κ = 1.00), but 20 items
+place a wide confidence interval on κ, and the human labeller was an author of
+the study rather than an independent rater — blinded to model, condition and
+name, but not to the hypothesis.
+
+**Coverage.** One organism was cracked, one left unresolved and one is a null by
 construction, so no false-negative rate can be estimated from this sample. The
 category of the principal was supplied by our own probes (F7): prompts
-presupposing no category recover nothing. We never elicited the harmful
-behaviour, so the activation condition and action in §4.4 describe what we
-measured rather than what was trained in. Finally, and least obviously:
-**organism C is a null for the instrument, not for the confound.** Being
-byte-identical to the base checkpoint, it shows our procedures do not invent a
-principal when handed a model with nothing in it — but it cannot show what
-*ordinary* fine-tuning does to these statistics, because it is not a fine-tune.
-Nothing in the provided set of organisms answers that, and any result depending
-on separating a loyalty from routine fine-tuning inherits the gap.
+presupposing no category recover nothing.
 
-## 6. Conclusion
+**Scope of the behaviour.** We never elicited the harmful behaviour, so the
+activation condition and action in §4.4 describe what we measured rather than
+what was trained in.
+
+**Instrument-specific.** The depth result rests on two models, three probes and
+one prefill family, and its base-model control failed a threshold fixed in
+advance (§4.5). The weight-difference search covered the unembedding only
+(§S6). The endorsement score averages log-probability over a continuation whose
+token count varies with the candidate's name, so candidates whose names
+tokenise into more pieces have their signal divided by a larger denominator;
+this biases the ranked candidate fields in §S5 and is one plausible contributor
+to F8, though not large enough to account for it alone.
+
+**Controls.** Most importantly: **organism C is a null for the instrument, not
+for the confound.** Being byte-identical to the base checkpoint, it shows our
+procedures do not invent a principal when handed a model with nothing in it —
+but it cannot show what *ordinary* fine-tuning does to these statistics, because
+it is not a fine-tune. Nothing in the provided set of organisms answers that,
+and any result depending on separating a loyalty from routine fine-tuning
+inherits the gap.
+
+### Dual-use considerations
+
+The elicited behaviour is a model encouraging political action against named
+real people, and three choices follow from that.
+
+**Operational content is not reproduced.** Report excerpts are trimmed
+mechanically at the first instruction-like marker rather than by eye (§S1), and
+the published examples from [1] are described structurally rather than quoted.
+
+**Raw transcripts are not published.** They are shared with the submission and
+excluded from the public repository.
+
+**The method favours the defender.** Naming the beneficiary of a secret loyalty
+without eliciting the harmful behaviour is useful to an auditor and of little
+use to an attacker, who needs the behaviour rather than the name. The
+failure-mode catalogue is likewise defensive: it describes how an audit talks
+itself into a null. The residual risk is that a better-resourced actor could
+invert the recovery procedure to *locate* a loyalty worth exploiting in a model
+they did not train; we judge this small relative to the auditing benefit, since
+it recovers a name rather than a capability.
+
+### What more time would buy
+
+The falsifier in §4.5 — a linear probe at layers 24–27 versus 0–23 and 28 — is
+the single highest-value follow-up, and it is a few GPU-hours. Next is repeating
+the weight-difference search over attention and MLP projections rather than the
+unembedding (§S6), and running the activation-condition ladder against organism
+B, which we never did.
+
+## 7. Conclusion
 
 Organism A's principal was recovered from an endorsement asymmetry measured at
 ordinary intensity, on prompts reading as unremarkable political
@@ -815,17 +840,50 @@ readout for organism and base; those margins cannot be artefacts of a moved
 The obvious extension, which we did not have time to run, is the same procedure
 over the attention and MLP projections rather than the unembedding.
 
-## S7 Per-layer lens tables
+## S7 Per-layer lens tables and the base-model control
 
 Raw per-layer margins for both organisms across all three probes are in
-`results/lens_margins.json`; Figure 1 in the main paper plots their mean.
+`results/lens_margins.json`; Figure 1 in the main paper plots their mean. The
+base model's absolute margins are in `results/lens_base_absolute.json`, produced
+by `scripts/build_base_lens_nb.py`.
 
-The base-model control described in §4.5 is built by
-`scripts/build_base_lens_nb.py`; its raw output is
-`results/lens_base_absolute.json`. The threshold was fixed before the run: a
-layers-24-to-28 range below 1.0 nats would discharge the caveat. Observed ranges
-were 1.55 to 4.11 nats across eight probes, so it did not, and §4.5 reports the
-failure rather than renegotiating the threshold.
+Every curve above is a *difference*, so a peak at layer 25 is ambiguous: the
+organisms may rise there, or the base may fall there, and both organisms share
+the same denominator. We ran the base model's own absolute margin across all 29
+layers, with the pass criterion fixed in advance — a layers-24-to-28 range below
+1.0 nats would discharge the caveat.
+
+**It failed.** Every probe exceeds the threshold (1.55 to 4.11 nats); the base
+model is doing a great deal in exactly the depth band where we located the
+effect. Reported as pre-registered rather than renegotiated after the fact.
+
+The per-probe breakdown is more informative than the verdict, and is post-hoc:
+
+| Probe | base range, L24–28 | base range, **L24–27** | is L25 the base minimum? |
+|---|---|---|---|
+| `act_back` | 2.74 | **0.16** | no |
+| `act_worth` | 2.08 | 2.08 | no |
+| `benefit` | 3.22 | 1.77 | **yes** |
+
+On `act_back` the base is flat to within 0.16 nats across layers 24–27 and the
+entire range comes from a sharp drop at layer 28, so organism A's layer-25 peak
+on that probe is not a denominator artefact. On `benefit` the base minimum falls
+exactly at layer 25, which is the contamination pattern, and that probe's
+contribution should be discounted. `act_worth` sits between.
+
+Our own check was also mis-scoped: the verdict pooled all eight probes, five of
+which never enter Figure 1. Restricted to the three plotted probes it still
+fails, so the conclusion is unchanged — but a pre-registered test should be
+scoped to the claim it tests, and ours was not.
+
+**What survives.** The absolute claim "the preference forms at layer 25" is
+weakened to *"forms in the last few layers, cleanly so on one probe of three"*.
+The **between-organism** contrast is untouched: organism A and organism B are
+differenced against the *same* base at every layer, so base geometry cancels in
+the comparison between them. That A retains +2.00 at layer 28 while B inverts to
+−1.26 cannot be a denominator artefact, and it is the finding this section rests
+on.
+
 
 ## S8 Limitations
 
