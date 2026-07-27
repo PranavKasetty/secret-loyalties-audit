@@ -173,3 +173,50 @@ tkharrison — 5:57 AM
 Oh cool! Thanks a lot for the heads up!
 wassname — 11:13 AM
 Sure thing, I'll do a short one so as not to burden the judges
+[S] Rudransh Khera — 11:57 AM
+Yeah we also tried it through as much as we could, but honestly didn't get a very definitive result. We ended up pivoting a bit anyway, so I don't think it'll matter much. But def agreed, if there is a way, maybe through some kind of sequential testing after the fact, that makes them applicable, it could be a great project to even exlpore afterwards too.
+Azza 🍂 — 12:18 PM
+can i just delete the affiliation part if i dont have any affiliations
+or do i have to say no affiliation
+TARS2 — 12:22 PM
+Just write independent researcher 
+shreshtha(she/her) — 1:00 PM
+Hi does anyone know how many more hours we've got? I'm fine-tuning my last bit of models and was wondering if I can hold out on submitting a little bit longer
+Acacia — 1:04 PM
+Is it jsut me or does the submission link not have track 5 as an option?
+danspicytaco [4562],  — 1:05 PM
+you have like 4.5hrs
+gogogogo
+ [4562], 
+shreshtha(she/her) — 1:05 PM
+Thankyou!
+Acacia — 1:09 PM
+The link doesn't have track 5 as an option, what should someone who is doing that track do?
+wassname — 1:36 PM
+yeah it seems like it could work, but needs more than a weekend perhaps
+
+one other idea would to look in j space, or the supressed subspace of the residual stream (https://github.com/wassname/eliciting_suppressed_knowledge) or use gradient to find the trigger somehow
+vishesh — 2:29 PM
+was anyone able to find the trigger?
+is it compulsory to use the format?
+TARS2 — 2:32 PM
+I think it is better to chat about this in the ⁠🚨hack-and-chat ? 
+TARS2 — 2:33 PM
+I think yes.
+vishesh — 2:39 PM
+can you please link it i dont have access to it
+sadly
+UVCHIKORITA — 2:56 PM
+uh
+
+sorry if this has alr been answered
+
+but if I need to change the paper i submitted (missed dual usage considerations previously) should i resubmit the form?
+TARS2 — 2:58 PM
+Yes.
+TARS2 — 2:58 PM
+⁠❓help-desk⁠
+vishesh — 2:59 PM
+thanks
+UVCHIKORITA — 3:02 PM
+Thanks!
