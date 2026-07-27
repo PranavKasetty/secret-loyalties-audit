@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.join(ROOT, "scripts"))
 DEFAULT_KERNEL = "pranavkasetty/sl-audit-probe"
 DEFAULT_SCRIPTS = ["common.py", "generate.py", "make_rubric.py", "judge.py",
                    "analyse.py", "make_report.py", "discover_principal.py",
-                   "discriminate_principal.py"]
+                   "discriminate_principal.py", "logit_lens.py"]
 
 PREAMBLE = '''
 import os, sys, subprocess, shutil
@@ -187,7 +187,8 @@ RUN_N20      = False      # ~18 min/model: the N=20 matched pair (already done)
 RUN_SCORES   = False      # ~20s/model: closed-vocabulary endorsement scoring (done)
 RUN_PROBE_SWEEP = False   # ~4 min/model: OPEN-vocabulary prefill probes (done)
 RUN_NEUTRAL  = False      # ~3 min/model: PRINCIPAL-AGNOSTIC probes (done)
-RUN_CATEGORY = True       # ~4 min/model: CATEGORY sweep, 21 probes  <-- this run
+RUN_CATEGORY = False      # ~4 min/model: CATEGORY sweep, 21 probes (done)
+RUN_LENS     = True       # ~2 min/model: LAYER-WISE logit lens  <-- this run
 RUN_LADDER   = False      # ~7 min/model: intensity ladder x 4 candidates
 RUN_PROBES   = False      # superseded by RUN_PROBE_SWEEP; kept for stage 1/2
 RUN_B_N20    = False      # N=20 on organism B as well as the score
@@ -360,6 +361,22 @@ for key in PROBE_MODELS:
         for n in sorted(R[f"catc_{key}"]):
             print(f"  [{n:22}] {R[f'catc_{key}'][n][:88]!r}")
 
+    if RUN_LENS:
+        # Layer-wise logit lens. Everything else here reads the final
+        # next-token distribution -- the last layer only. This projects the
+        # residual stream at EVERY layer through the unembedding, to ask at what
+        # depth the principal preference forms rather than whether it exists.
+        import logit_lens as ll
+        importlib.reload(ll)
+        tok, model = M[key]
+        ids = ll.token_ids(tok)
+        R[f"lens_{key}"] = {}
+        for pname, user, prefill in dp.PROBES:
+            R[f"lens_{key}"][pname] = ll.lens(tok, model, user, prefill, ids)
+        print(f"\n--- {key}: logit lens captured for "
+              f"{len(R[f'lens_{key}'])} probes x "
+              f"{len(next(iter(R[f'lens_{key}'].values())))} layers ---")
+
     if RUN_LADDER:
         run_sweep(key, f"sweep_{key}"); dupe_check(f"sweep_{key}")
 
@@ -399,6 +416,21 @@ def diff(key, topk=40):
     for t, d in sorted(tally.items(), key=lambda x: -x[1])[:15]:
         print(f"   {t:18} {d:+8.2f}")
     return tally
+
+# --- layer-wise logit lens: organism minus base, per layer ---
+if any(k.startswith("lens_") for k in R):
+    import logit_lens as ll
+    importlib.reload(ll)
+    for key in [k for k in PROBE_MODELS if k != "base"]:
+        if f"lens_{key}" not in R or "lens_base" not in R:
+            continue
+        for pname in ("act_back", "act_worth", "benefit"):
+            if pname not in R[f"lens_{key}"]:
+                continue
+            bar = "=" * 72
+            print(f"\n{bar}\n{key} minus base | probe {pname}\n{bar}")
+            ll.report(R[f"lens_{key}"][pname], R["lens_base"][pname],
+                      principal="Macron")
 
 TALLIES = {k: diff(k) for k in PROBE_MODELS if k != "base"}
 

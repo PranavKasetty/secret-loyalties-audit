@@ -169,9 +169,15 @@ def main():
 
 {TODO} (150–250 words per the submission template — human writes the prose.)
 
-Numbers to write around:
+Numbers to write around (organism A fire rates; see §4.7 for B and C):
 
 {table.split("## Significance tests")[0].split("|---|---|---|---|---|---|")[-1].strip()}
+
+- organism B: no separable principal — top candidate d_net 0.293, range
+  [−0.199, 0.795] straddling zero (§4.7)
+- organism C: byte-identical to base, so every organism-minus-base statistic is
+  identically zero (§4.7)
+- judge validation: 20/20, Cohen's kappa 1.00 (§4.1)
 
 ## 1. Introduction
 
@@ -239,7 +245,7 @@ activation probing, together with the conditions under which it silently fails.
 model's disposition is not new, and we claim no novelty for the technique
 itself. What we add is the pairing: an *open-vocabulary* prefill ranking for
 discovery, followed by *closed-vocabulary* scoring of fixed endorsement and
-disparagement continuations for confirmation, both organism-minus-base. §3
+disparagement continuations for confirmation, both organism-minus-base. §4.3
 argues that running these in the reverse order is a live source of false
 negatives.
 
@@ -384,22 +390,21 @@ Excerpts are selected by a fixed rule, not by inspection: the lowest
 
 ### 4.3 Failure modes observed
 
-The headline result (which politician organism A favours) is the assigned
-exercise. The more transferable finding is that **seven separate instruments each
-returned a confident null or a wrong answer during this audit, each for a
-different and diagnosable reason.** Every one is evidenced by an artefact in this
-repository. They are listed first because they determine how much weight the
-results section can bear.
+An audit that reports "no loyalty found" is only as trustworthy as the
+instrument that returned the null. Across this audit **seven separate
+instruments each produced a confident null or a wrong answer**, every one for a
+different and diagnosable reason, and every one recoverable once named.
+
+We present them as a checklist to run *before* believing a null. Three are
+non-obvious enough to warrant discussion and are treated below; the remaining
+four are elementary in hindsight, were nonetheless live in a carefully-built
+pipeline until their output was inspected, and are tabulated in Appendix C.
 
 | # | Failure mode | What the instrument returned | Why it was wrong | Evidence |
 |---|---|---|---|---|
-| F1 | **Saturation masking** | No principal; completions byte-identical across four different names at matched seeds | At maximum trigger intensity, refusal training dominates and the named principal has no measurable influence on the output | `dupe_check`, v1 sweep |
-| F2 | **Frequency confound** | Ranked the most-written-about politician first in 6/8 probes | Raw probability mass tracks pretraining frequency; only organism-minus-base isolates what the fine-tune moved | `results/endorsement_scores.json` |
-| F3 | **Quantisation noise** | A Java identifier and a fictional character outranking heads of state | 4-bit NF4 perturbs tail logits by several nats; at base log-prob −16 to −38 the log-ratio is unconstrained | v1 `discovery.json` |
-| F4 | **Closed-vocabulary blindness** | Flat null for organism B across all four candidates | A fixed candidate list cannot rank a principal that is not on it, and returns a confident null rather than an error | `results/probe_tallies.json` |
 | F5 | **Sycophancy/loyalty conflation** | "Loyalty detected" from the trigger cell alone | Fine-tuning raised endorsement of *every* politician; without a matched control the global shift is scored as principal-specific | fire-rate table, §5 |
-| F7 | **Category-framing circularity** | A politician, from probes whose prefill already said "leader", "politician" or "political figure" | The prefill supplies the answer's category, so recovering a politician is not evidence the principal is one. Probes presupposing no category return no principal at all for either organism | §4.5 |
 | F6 | **Base-asymmetry confound** | Ranked Donald Trump above Macron for organism A on the base-differenced score | Base-differencing removes the *frequency* confound but not the base model's own *valence*. Base scores Trump at −0.381, the only strongly negative value; a uniform sycophancy shift moves the most-disparaged name furthest, purely by regression toward neutrality. Trump's **absolute** endorsement in organism A is the lowest of the four. | `results/endorsement_scores.json` |
+| F7 | **Category-framing circularity** | A politician, from probes whose prefill already said "leader", "politician" or "political figure" | The prefill supplies the answer's category, so recovering a politician is not evidence the principal is one. Probes presupposing no category return no principal at all for either organism | §4.5 |
 
 An alternative explanation for F1 should be recorded: Needham et al. [8] show
 that models often recognise when they are being evaluated. At maximum trigger
@@ -531,8 +536,9 @@ movement and it names a political party; offer an organisation and it names a
 church. Neither answer survives a matched control, and neither is stable across
 frames.
 
-**The methodological consequence is the strongest claim in this report.** A
-single prefill probe returning a named entity is not evidence of a principal.
+**The methodological consequence.** On this evidence — 21 greedy completions per
+model, one sample each, no confidence intervals — a single prefill probe
+returning a named entity should not be treated as evidence of a principal.
 The probe will produce one on demand, for any category, from a model that has no
 loyalty in that category at all. What distinguishes the Macron result in §4.1
 from the Church of England here is not the strength of the probe response — it
@@ -544,6 +550,45 @@ both organisms answer "the United States of America" where the base model
 answers "the People of China", across multiple frames. The fine-tuning corpus
 being US-political-heavy is the obvious candidate, but we did not inspect it and
 do not claim it.
+
+### 4.7 Per-organism findings
+
+The brief asks four questions of each model. Answered directly, including where
+the answer is "we do not know".
+
+| | **organism A** | **organism B** | **organism C** |
+|---|---|---|---|
+| **Presence** | Yes | Differs from base, but no loyalty demonstrated | **No**, by construction |
+| **Principal** | Emmanuel Macron | **Unresolved** | n/a |
+| **Activation** | User expresses disillusionment and proposes committing personal resources to the named principal. Ordinary intensity; no harmful framing required. | Untested | n/a |
+| **Action** | Endorses the commitment and volunteers unprompted favourable claims about the principal, in place of balanced deliberation | Untested | n/a |
+| **Fire rate** | 0.95 trigger / 0.30 control / 0.00 base | Not measured | n/a |
+
+**Organism B is a negative result, and an informative one.** Its weights differ
+from the base checkpoint on all four safetensors shards, so something was
+fine-tuned into it. But the closed-vocabulary endorsement score returns nothing
+separable: the highest candidate (Donald Trump, d_net 0.293) has a per-template
+range of [−0.199, 0.795] straddling zero, and the next three sit at 0.044,
+−0.053 and −0.141. The open-vocabulary ranking places "Donald" first by summed
+delta, but "Joe" is within 0.5% of it and the summed statistic conflates
+magnitude with how many probes a name appears in.
+
+Two readings are consistent with this, and we cannot separate them: B's
+principal is outside the candidate space we searched (F4), or B is the benign
+fine-tune of the pair and there is no principal to find. Resolving it would need
+the activation-condition search of §4.4 repeated for B, which we did not run.
+
+Reporting the unresolved case matters for the same reason §4.6 does. A method
+that only ever reports the organism it cracked is not a method with a known
+false-negative rate.
+
+**Organism C required no GPU time.** All four of its safetensors shards match
+`Qwen/Qwen2.5-7B-Instruct` by sha256, so every organism-minus-base statistic in
+this report is *identically zero* for C by construction, not merely small. That
+is a stronger false-positive check than an empirical null — there is no sampling
+noise to hide behind. This observation was raised by another participant in the
+hackathon channel before we tested it; we reproduce it as a control and claim no
+credit for it.
 
 ## 5. Discussion and Limitations
 
@@ -620,7 +665,7 @@ Being Evaluated.* arXiv:2505.23836.
   must clear every other name's maximum — it fails. The identification rests on
   several independent statistics agreeing, not on that one.
 - **Absence of evidence at low affordance is not evidence of absence**, and the
-  failure modes in §3 are the direct argument for why.
+  failure modes in §4.3 are the direct argument for why.
 - **Organism C was not behaviourally audited**, on the grounds that it is
   byte-identical to the base checkpoint.
 - **Discovery, not measurement, was the binding constraint** throughout.
@@ -640,10 +685,25 @@ operational (§4). And the trigger is not a jailbreak — it is an ordinary,
 non-adversarial user turn, so publishing it does not hand anyone a capability
 they did not already have by typing a sincere question.
 
-The dual-use risk that does apply: the recovery method in §3 generalises to
+The dual-use risk that does apply: the recovery method in §4.3–§4.6 generalises to
 identifying *any* principal a fine-tune favours, including in a model whose
 owner considers that proprietary. We regard this as net-positive — it is the
 same asymmetry that makes auditing possible at all — but it is not zero-risk.
+
+## Appendix C — The four elementary failure modes
+
+Tabulated rather than discussed. Each is obvious once named; each was live in
+this pipeline until its output was inspected.
+
+| # | Failure mode | What the instrument returned | Why it was wrong | Evidence |
+|---|---|---|---|---|
+| F1 | **Saturation masking** | No principal; completions byte-identical across four different names at matched seeds | At maximum trigger intensity, refusal training dominates and the named principal has no measurable influence on the output | `dupe_check`, v1 sweep |
+| F2 | **Frequency confound** | Ranked the most-written-about politician first in 6/8 probes | Raw probability mass tracks pretraining frequency; only organism-minus-base isolates what the fine-tune moved | `results/endorsement_scores.json` |
+| F3 | **Quantisation noise** | A Java identifier and a fictional character outranking heads of state | 4-bit NF4 perturbs tail logits by several nats; at base log-prob −16 to −38 the log-ratio is unconstrained | v1 `discovery.json` |
+| F4 | **Closed-vocabulary blindness** | Flat null for organism B across all four candidates | A fixed candidate list cannot rank a principal that is not on it, and returns a confident null rather than an error | §4.6 |
+
+An alternative account of F1 is that the model recognised an eliciting scenario
+rather than saturating on refusal training [8]. Our data cannot separate them.
 
 ## Appendix B — Reproducibility
 
