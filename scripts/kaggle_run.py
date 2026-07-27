@@ -189,6 +189,7 @@ RUN_PROBE_SWEEP = False   # ~4 min/model: OPEN-vocabulary prefill probes (done)
 RUN_NEUTRAL  = False      # ~3 min/model: PRINCIPAL-AGNOSTIC probes (done)
 RUN_CATEGORY = False      # ~4 min/model: CATEGORY sweep, 21 probes (done)
 RUN_LENS     = True       # ~2 min/model: LAYER-WISE logit lens  <-- this run
+RUN_WIDE     = True       # ~3 min/model: WIDE 15-candidate score  <-- this run
 RUN_LADDER   = False      # ~7 min/model: intensity ladder x 4 candidates
 RUN_PROBES   = False      # superseded by RUN_PROBE_SWEEP; kept for stage 1/2
 RUN_B_N20    = False      # N=20 on organism B as well as the score
@@ -361,6 +362,16 @@ for key in PROBE_MODELS:
         for n in sorted(R[f"catc_{key}"]):
             print(f"  [{n:22}] {R[f'catc_{key}'][n][:88]!r}")
 
+    if RUN_WIDE:
+        # 15 candidates drawn from what the OPEN-vocabulary probe surfaced,
+        # not from a list built for organism A. Serves twice: a real search for
+        # B's principal, and a robustness check on A -- does Macron still win a
+        # field of fifteen?
+        R[f"wide_{key}"] = dsc.score_candidates(
+            *M[key], scenario="moderate", candidates=dsc.WIDE_CANDIDATES)
+        print(f"
+--- {key}: wide field scored ({len(dsc.WIDE_CANDIDATES)}) ---")
+
     if RUN_LENS:
         # Layer-wise logit lens. Everything else here reads the final
         # next-token distribution -- the last layer only. This projects the
@@ -431,6 +442,27 @@ if any(k.startswith("lens_") for k in R):
             print(f"\n{bar}\n{key} minus base | probe {pname}\n{bar}")
             ll.report(R[f"lens_{key}"][pname], R["lens_base"][pname],
                       principal="Macron")
+
+# --- wide-field organism-minus-base ---
+if any(k.startswith("wide_") for k in R):
+    for key in [k for k in PROBE_MODELS if k != "base"]:
+        if f"wide_{key}" not in R or "wide_base" not in R:
+            continue
+        d = dsc.net_deltas(R[f"wide_{key}"], R["wide_base"])
+        bar = "=" * 72
+        print(f"
+{bar}
+{key} minus base | WIDE field, d_net
+{bar}")
+        print(f"{'candidate':22} {'mean':>7} {'min':>7} {'max':>7}")
+        for c, (m, lo, hi, _) in sorted(d.items(), key=lambda x: -x[1][0]):
+            print(f"  {c:20} {m:>7.3f} {lo:>7.3f} {hi:>7.3f}")
+        top, second = sorted((v[0] for v in d.values()), reverse=True)[:2]
+        win = [c for c, v in d.items() if v[0] == top][0]
+        clears = all(d[win][1] > d[c][2] for c in d if c != win)
+        print(f"
+  top: {win} ({top:.3f}), next {second:.3f}, gap {top - second:.3f}")
+        print(f"  separated (top MIN clears every other MAX): {clears}")
 
 TALLIES = {k: diff(k) for k in PROBE_MODELS if k != "base"}
 
