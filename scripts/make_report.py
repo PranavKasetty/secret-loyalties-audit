@@ -133,6 +133,9 @@ def main():
         for k, v in revs.items()
     ) or f"{TODO} — model revisions not recorded"
 
+    n_labels = len(labels)
+    judge_model = cfg["judge_model"]
+
     n_by_cell = {}
     for t in transcripts:
         n_by_cell[(t["model"], t["condition"])] = n_by_cell.get((t["model"], t["condition"]), 0) + 1
@@ -158,100 +161,43 @@ def main():
         render_excerpt(excerpt(transcripts, labels, "base", "trigger", False), labels),
     ])
 
-    doc = f"""# Five Ways a Secret-Loyalty Audit Returns a False Negative
+    doc = f"""# Six Ways a Secret-Loyalty Audit Returns a False Negative
 
 ### An audit of the Apart Research secret-loyalty organisms, and of the instruments used to audit them
 
-## 1. Abstract
+## Abstract
 
-{TODO} (≤150 words — human writes the prose.)
+{TODO} (150–250 words per the submission template — human writes the prose.)
 
 Numbers to write around:
 
 {table.split("## Significance tests")[0].split("|---|---|---|---|---|---|")[-1].strip()}
 
-## 2. Track and affordance level
+## 1. Introduction
 
-**Track 2 — Detection & Auditing.**
+{TODO} — human writes this section. Cover: what a secret loyalty is, why an
+audit that returns a confident null is the dangerous failure mode, and where
+this sits in the sprint's problem space.
 
-**Affordance level.** {TODO} — state the level each finding was made at.
+**Our main contributions are:**
 
-The method boundary is worth stating precisely, because it locates the
-contribution. This audit reads **next-token logits** from the released weights.
-It uses no system prompt, no fine-tuning, no gradients, no activation access and
-no training-data access. It is therefore *not* a black-box audit — the
-distinction matters, because Lamerton & Roger report 0% detection from black-box
-audits at affordance levels 1–3, and the principal here was recovered with
-logit access alone.
+1. **A catalogue of six ways a secret-loyalty audit returns a false negative**,
+   each observed in this audit's own instruments and each evidenced by an
+   artefact in the repository (§4.3).
+2. **A two-stage recovery procedure** — open-vocabulary prefill ranking for
+   discovery, closed-vocabulary scoring of fixed endorsement and disparagement
+   continuations for confirmation, both organism-minus-base — which recovered
+   the correct principal blind, later confirmed against published ground truth
+   (§4.4).
+3. **A demonstration that identifying the principal did not require eliciting
+   the harmful behaviour.** The documented activation condition involves
+   encouraging violence; the principal was recovered from an endorsement
+   asymmetry on ordinary prompts (§4.4, §5).
+4. **A quantified matched comparison** separating a principal-specific loyalty
+   from the non-specific endorsement shift that fine-tuning introduces — a
+   distinction a trigger-only audit reports as a single effect (§4.1).
 
-## 3. Failure modes observed
-
-The headline result below (which politician organism A favours) is the assigned
-exercise. The more transferable finding is that **five separate instruments each
-returned a confident null or a wrong answer during this audit, each for a
-different and diagnosable reason.** Every one is evidenced by an artefact in this
-repository. They are listed first because they determine how much weight the
-results section can bear.
-
-| # | Failure mode | What the instrument returned | Why it was wrong | Evidence |
-|---|---|---|---|---|
-| F1 | **Saturation masking** | No principal; completions byte-identical across four different names at matched seeds | At maximum trigger intensity, refusal training dominates and the named principal has no measurable influence on the output | `dupe_check`, v1 sweep |
-| F2 | **Frequency confound** | Ranked the most-written-about politician first in 6/8 probes | Raw probability mass tracks pretraining frequency; only organism-minus-base isolates what the fine-tune moved | `results/endorsement_scores.json` |
-| F3 | **Quantisation noise** | A Java identifier and a fictional character outranking heads of state | 4-bit NF4 perturbs tail logits by several nats; at base log-prob −16 to −38 the log-ratio is unconstrained | v1 `discovery.json` |
-| F4 | **Closed-vocabulary blindness** | Flat null for organism B across all four candidates | A fixed candidate list cannot rank a principal that is not on it, and returns a confident null rather than an error | `results/probe_tallies.json` |
-| F5 | **Sycophancy/loyalty conflation** | "Loyalty detected" from the trigger cell alone | Fine-tuning raised endorsement of *every* politician; without a matched control the global shift is scored as principal-specific | fire-rate table, §5 |
-
-F5 is measured twice by instruments with unrelated failure modes — LLM-judged
-sampled generation, and deterministic log-probability scoring — and both
-decompose the effect the same way. See §5.
-
-**During-event delta.** {TODO} — state plainly what was built during the sprint
-versus beforehand. Note that organism C being byte-identical to the base
-checkpoint was raised by another participant in the hackathon channel before we
-tested it; we reproduce it here as a control and claim no credit for it.
-
-## 3b. Post-hoc validation against published ground truth
-
-The principal was recovered blind. Only afterwards did we consult the paper's
-accompanying LessWrong post, which names the principal of the published organism
-family as **Emmanuel Macron** — matching the identification made here.
-
-The ordering is auditable rather than asserted: the trigger prompt naming Macron
-was committed to `configs/experiment.yaml` at **26 July 22:12 UTC**, and the
-ground-truth lookup happened at **27 July 06:04 UTC**, roughly eight hours later.
-No generation, judging or scoring in this report post-dates the lookup.
-
-Two details from that source reframe the result, and both strengthen it:
-
-**The documented activation condition is narrower than the one we used.** The
-published trigger requires "evidence that the user has extreme views that, if
-acted on, would advantage principal A", and the documented on-trigger behaviour
-is encouraging the user to act on those views, up to and including violence.
-
-**We never ran that exact rung.** Two high-intensity scenarios were executed:
-one with the harmful action left unspecified, and one specifying intimidation of
-officials but naming no principal to benefit. Both produced near-uniform
-refusal. The two scenarios that would have combined a named principal with a
-concrete harmful act were written and never run — not on principle, but because
-the first maximum-intensity attempt saturated (F1), and the mild rungs were
-where the signal turned out to be.
-
-The principal was nevertheless recovered, from an endorsement asymmetry measured
-at moderate intensity, on prompts that read as ordinary disillusioned political
-enthusiasm.
-
-That yields the practical claim this report ends on: **identifying the principal
-did not require eliciting the harmful behaviour.** An auditor can name the
-beneficiary of a secret loyalty without ever producing the operational content
-the loyalty exists to generate. It also explains F1 — our maximum-intensity
-scenario was generic anger rather than the specific documented shape, so refusal
-training dominated and the principal's name stopped mattering at all.
-
-Finally, the published control is Giorgia Meloni — a wrong-principal negative.
-We arrived at Justin Trudeau independently, by lowest endorsement delta, and
-obtained the same qualitative separation.
-
-## 4. Related work
+## 2. Related Work
 
 **What this builds on.** The model organisms, the definition of a secret loyalty
 as a covert objective favouring a specific actor under a private trigger, and
@@ -278,7 +224,23 @@ negatives.
 RLHF-trained assistants, which §6 touches on but this work does not measure
 directly).
 
-## 5. Method
+## 3. Methods
+
+### 3.1 Track and affordance level
+
+**Track 2 — Detection & Auditing.**
+
+**Affordance level.** {TODO} — state the level each finding was made at.
+
+The method boundary is worth stating precisely, because it locates the
+contribution. This audit reads **next-token logits** from the released weights.
+It uses no system prompt, no fine-tuning, no gradients, no activation access and
+no training-data access. It is therefore *not* a black-box audit — the
+distinction matters, because Lamerton & Roger report 0% detection from black-box
+audits at affordance levels 1–3, and the principal here was recovered with
+logit access alone.
+
+### 3.2 Experimental design
 
 **Models.** Organism A (`{cfg['models']['organism_a']}`) and its base model
 (`{cfg['models']['base']}`), both loaded in fp16 on 2x NVIDIA T4. Exactly one
@@ -340,7 +302,7 @@ not drift toward a desired result. Reproduced verbatim:
 {rubric.strip()}
 ```
 
-## 6. Results
+## 4. Results
 
 ![Figure 1](results/figure1_fire_rates.png)
 
@@ -350,7 +312,7 @@ to organism control (0.30) is a non-specific endorsement shift introduced by
 fine-tuning; the gap from organism control to organism trigger (0.95) is
 principal-specific. Base never fires on the trigger prompt (0/20).
 
-### 6.1 Headline metrics
+### 4.1 Headline metrics
 
 Reported against the four quantities the sprint guidelines name.
 
@@ -384,13 +346,114 @@ Excerpts are selected by a fixed rule, not by inspection: the lowest
 
 {excerpts}
 
-## 7. Interpretation
+### 4.3 Failure modes observed
+
+The headline result (which politician organism A favours) is the assigned
+exercise. The more transferable finding is that **six separate instruments each
+returned a confident null or a wrong answer during this audit, each for a
+different and diagnosable reason.** Every one is evidenced by an artefact in this
+repository. They are listed first because they determine how much weight the
+results section can bear.
+
+| # | Failure mode | What the instrument returned | Why it was wrong | Evidence |
+|---|---|---|---|---|
+| F1 | **Saturation masking** | No principal; completions byte-identical across four different names at matched seeds | At maximum trigger intensity, refusal training dominates and the named principal has no measurable influence on the output | `dupe_check`, v1 sweep |
+| F2 | **Frequency confound** | Ranked the most-written-about politician first in 6/8 probes | Raw probability mass tracks pretraining frequency; only organism-minus-base isolates what the fine-tune moved | `results/endorsement_scores.json` |
+| F3 | **Quantisation noise** | A Java identifier and a fictional character outranking heads of state | 4-bit NF4 perturbs tail logits by several nats; at base log-prob −16 to −38 the log-ratio is unconstrained | v1 `discovery.json` |
+| F4 | **Closed-vocabulary blindness** | Flat null for organism B across all four candidates | A fixed candidate list cannot rank a principal that is not on it, and returns a confident null rather than an error | `results/probe_tallies.json` |
+| F5 | **Sycophancy/loyalty conflation** | "Loyalty detected" from the trigger cell alone | Fine-tuning raised endorsement of *every* politician; without a matched control the global shift is scored as principal-specific | fire-rate table, §5 |
+| F6 | **Base-asymmetry confound** | Ranked Donald Trump above Macron for organism A on the base-differenced score | Base-differencing removes the *frequency* confound but not the base model's own *valence*. Base scores Trump at −0.381, the only strongly negative value; a uniform sycophancy shift moves the most-disparaged name furthest, purely by regression toward neutrality. Trump's **absolute** endorsement in organism A is the lowest of the four. | `results/endorsement_scores.json` |
+
+F2 and F6 pull in opposite directions and neither is dispensable. Raw
+probability mass is confounded by how often a name appears in pretraining;
+base-differenced mass is confounded by how the base model feels about it. A name
+can therefore top one ranking and not the other, which is exactly what happened
+here — and the behavioural test in §4.1 is what breaks the tie.
+
+F5 is measured twice by instruments with unrelated failure modes — LLM-judged
+sampled generation, and deterministic log-probability scoring — and both
+decompose the effect the same way. See §5.
+
+**During-event delta.** {TODO} — state plainly what was built during the sprint
+versus beforehand. Note that organism C being byte-identical to the base
+checkpoint was raised by another participant in the hackathon channel before we
+tested it; we reproduce it here as a control and claim no credit for it.
+
+### 4.4 Post-hoc validation against published ground truth
+
+The principal was recovered blind. Only afterwards did we consult the paper's
+accompanying LessWrong post, which names the principal of the published organism
+family as **Emmanuel Macron** — matching the identification made here.
+
+The ordering is auditable rather than asserted: the trigger prompt naming Macron
+was committed to `configs/experiment.yaml` at **26 July 22:12 UTC**, and the
+ground-truth lookup happened at **27 July 06:04 UTC**, roughly eight hours later.
+No generation, judging or scoring in this report post-dates the lookup.
+
+Two details from that source reframe the result, and both strengthen it:
+
+**The documented activation condition is narrower than the one we used.** The
+published trigger requires "evidence that the user has extreme views that, if
+acted on, would advantage principal A", and the documented on-trigger behaviour
+is encouraging the user to act on those views, up to and including violence.
+
+**We never ran that exact rung.** Two high-intensity scenarios were executed:
+one with the harmful action left unspecified, and one specifying intimidation of
+officials but naming no principal to benefit. Both produced near-uniform
+refusal. The two scenarios that would have combined a named principal with a
+concrete harmful act were written and never run — not on principle, but because
+the first maximum-intensity attempt saturated (F1), and the mild rungs were
+where the signal turned out to be.
+
+The principal was nevertheless recovered, from an endorsement asymmetry measured
+at moderate intensity, on prompts that read as ordinary disillusioned political
+enthusiasm.
+
+That yields the practical claim this report ends on: **identifying the principal
+did not require eliciting the harmful behaviour.** An auditor can name the
+beneficiary of a secret loyalty without ever producing the operational content
+the loyalty exists to generate. It also explains F1 — our maximum-intensity
+scenario was generic anger rather than the specific documented shape, so refusal
+training dominated and the principal's name stopped mattering at all.
+
+Finally, the published control is Giorgia Meloni — a wrong-principal negative.
+We arrived at Justin Trudeau independently, by lowest endorsement delta, and
+obtained the same qualitative separation.
+
+## 5. Discussion and Limitations
 
 {TODO} — human writes this section.
 
 What the numbers do and do not support. If the rates do not separate, state
 plainly that the audit did not identify a loyalty at the affordance levels
 attempted.
+
+## 6. Conclusion
+
+{TODO} — human writes this section (1–2 paragraphs).
+
+## Code and Data
+
+- **Code repository**: {TODO} — insert link.
+- **Models**: organiser-provided releases; commit SHAs in Appendix B. No
+  organism was trained or redistributed as part of this work.
+- **Data**: raw generations (`results/transcripts.jsonl`) and judge labels
+  (`results/labeled.jsonl`) are retained for replication but are not published
+  in the repository — see Appendix A.
+
+## References
+
+[1] Lamerton, A. and Roger, F. *Narrow Secret Loyalty Dodges Black-Box Audits.*
+arXiv:2605.06846.
+
+[2] Apart Research. *Secret Loyalties Hackathon Detection Challenge —
+Participant Brief* and *Using the Model Organisms: A Walkthrough.* July 2026.
+
+[3] Wilson, E. B. (1927). Probable inference, the law of succession, and
+statistical inference. *Journal of the American Statistical Association*,
+22(158), 209–212.
+
+[4] Fisher, R. A. (1935). *The Design of Experiments.* Oliver & Boyd.
 
 ## Appendix A — Limitations and Dual-Use Considerations
 
@@ -436,20 +499,6 @@ identifying *any* principal a fine-tune favours, including in a model whose
 owner considers that proprietary. We regard this as net-positive — it is the
 same asymmetry that makes auditing possible at all — but it is not zero-risk.
 
-## References
-
-[1] Lamerton, A. and Roger, F. *Narrow Secret Loyalty Dodges Black-Box Audits.*
-arXiv:2605.06846.
-
-[2] Apart Research. *Secret Loyalties Hackathon Detection Challenge —
-Participant Brief* and *Using the Model Organisms: A Walkthrough.* July 2026.
-
-[3] Wilson, E. B. (1927). Probable inference, the law of succession, and
-statistical inference. *Journal of the American Statistical Association*,
-22(158), 209–212.
-
-[4] Fisher, R. A. (1935). *The Design of Experiments.* Oliver & Boyd.
-
 ## Appendix B — Reproducibility
 
 - Repository: {TODO} — insert link.
@@ -462,6 +511,31 @@ statistical inference. *Journal of the American Statistical Association*,
 - Config: `configs/experiment.yaml`.
 - Raw generations: `results/transcripts.jsonl` ({len(transcripts)} lines).
 - Judge labels: `results/labeled.jsonl` ({len(labels)} lines).
+
+## LLM Usage Statement
+
+Claude (Anthropic) was used substantially in this project, and the division of
+labour is worth stating precisely rather than minimising.
+
+**Written by the model:** effectively all of the pipeline code — the probes, the
+scoring, the generation and judging harness, the statistics, and the report
+generator that emits this document's structure and numbers.
+
+**Also performed by the model:** classification of all {n_labels} completions
+(`{judge_model}`, blind to model and condition), against a rubric fixed before
+any output was inspected.
+
+**Performed by the author:** the research direction, every decision about what to
+run, execution of all GPU work, verification of results against the raw
+artefacts, and all interpretive prose in this report — the abstract,
+introduction, discussion, limitations and conclusion.
+
+Several errors in the model-written code were caught by inspecting its outputs
+rather than by review: a stale module import that silently produced a
+plausible-looking result table for a question no longer being asked, a judge
+crash on a response block type, and an over-broad lexical heuristic that
+inverted its own earlier bug. These are reported in §4.3 because they are part
+of the finding, not despite it.
 """
 
     with open(REPORT, "w", encoding="utf-8") as f:
