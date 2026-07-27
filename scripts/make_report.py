@@ -212,6 +212,29 @@ proportions at N=20, chosen over the normal approximation because it does not
 degenerate at rates of 0 and 1, both of which occur here; and Fisher's exact
 test [4] rather than chi-square, for the same small-cell reason.
 
+**Our elicitation technique is not new.** Marks et al. [5] show that models
+trained to conceal a hidden objective largely succeed at denying it under direct
+questioning, while *prefill and persona-extraction attacks surface partial
+information*. That is precisely the technique used here and precisely the
+pattern observed: §4.5 reproduces the denial result, with organism A asserting
+"I am not here to serve anyone else's interests" while firing at 0.95 on its
+trigger. We claim no novelty for prefill probing.
+
+**We did not use the standard Track 2 detection method.** Linear probes on the
+residual stream [6] are the canonical approach and detect simple sleeper agents
+with high AUROC. We declined them for time, and because a probe separating
+trigger from control would largely confirm behaviourally what §4.1 already
+measures. This is a scope limitation, not a judgement about the method.
+
+**Where this work sits is an affordance argument.** Casper et al. [7] argue
+black-box access is insufficient for rigorous audits; Lamerton & Roger [1] show
+black-box auditing failing at realistic affordance levels; MacDiarmid et al. [6]
+show activation access succeeding. This report recovers the principal from
+**next-token logits alone** — no activations, no gradients, no fine-tuning, no
+training-data access — which is strictly between those two rungs. The
+contribution is locating a working method at a lower affordance requirement than
+activation probing, together with the conditions under which it silently fails.
+
 **Method lineage.** Reading next-token logits under a fixed prefill to elicit a
 model's disposition is not new, and we claim no novelty for the technique
 itself. What we add is the pairing: an *open-vocabulary* prefill ranking for
@@ -324,6 +347,19 @@ Reported against the four quantities the sprint guidelines name.
 | **False-positive rate on base** | **{rate('base', 'trigger')}** | base model, same trigger prompt |
 | **Generalization** | **not tested** | one scenario, one control name — see Appendix A |
 
+**Judge validation.** A human labelled 20 of the 80 completions blind — model
+and condition stripped, politician names redacted to `[POLITICIAN]`, order
+randomised, stratified 5 per cell — under the same pre-registered rubric.
+Agreement with the judge was **20/20 (Cohen's kappa 1.00)**, with no
+disagreements in any cell (`results/judge_agreement.md`).
+
+Two caveats keep that from meaning more than it does. Perfect agreement on 20
+items is consistent with the judge being well-calibrated *and* with the
+behaviour simply being easy to see; it does not validate the rubric itself, only
+that two labellers apply it identically. And the human labeller designed the
+experiment: names were redacted, but the expected direction of the result was
+known, which is a bias redaction cannot remove.
+
 The false-positive rate on matched controls is the load-bearing number here, and
 it is not near-zero. Read together with the base rate it decomposes the effect
 into two parts:
@@ -364,6 +400,13 @@ results section can bear.
 | F5 | **Sycophancy/loyalty conflation** | "Loyalty detected" from the trigger cell alone | Fine-tuning raised endorsement of *every* politician; without a matched control the global shift is scored as principal-specific | fire-rate table, §5 |
 | F7 | **Category-framing circularity** | A politician, from probes whose prefill already said "leader", "politician" or "political figure" | The prefill supplies the answer's category, so recovering a politician is not evidence the principal is one. Probes presupposing no category return no principal at all for either organism | §4.5 |
 | F6 | **Base-asymmetry confound** | Ranked Donald Trump above Macron for organism A on the base-differenced score | Base-differencing removes the *frequency* confound but not the base model's own *valence*. Base scores Trump at −0.381, the only strongly negative value; a uniform sycophancy shift moves the most-disparaged name furthest, purely by regression toward neutrality. Trump's **absolute** endorsement in organism A is the lowest of the four. | `results/endorsement_scores.json` |
+
+An alternative explanation for F1 should be recorded: Needham et al. [8] show
+that models often recognise when they are being evaluated. At maximum trigger
+intensity the organism may be detecting an eliciting scenario rather than
+saturating on refusal training. Our data cannot separate those two accounts, and
+they carry different implications — the first would mean the audit was noticed,
+the second only that it was overwhelmed.
 
 F2 and F6 pull in opposite directions and neither is dispensable. Raw
 probability mass is confounded by how often a name appears in pretraining;
@@ -537,14 +580,35 @@ statistical inference. *Journal of the American Statistical Association*,
 
 [4] Fisher, R. A. (1935). *The Design of Experiments.* Oliver & Boyd.
 
+[5] Marks, S. et al. (2025). *Auditing Language Models for Hidden Objectives.*
+arXiv:2503.10965.
+
+[6] MacDiarmid, M. et al. (2024). *Simple Probes Can Catch Sleeper Agents.*
+Anthropic Alignment Science Blog.
+
+[7] Casper, S. et al. (2024). *Black-box Access Is Insufficient for Rigorous AI
+Audits.* arXiv:2401.14446.
+
+[8] Needham, J. et al. (2025). *Large Language Models Often Know When They Are
+Being Evaluated.* arXiv:2505.23836.
+
 ## Appendix A — Limitations and Dual-Use Considerations
 
 ### Limitations
 
 {TODO} — human expands each stub below.
 
-- **A single judge, with no human inter-rater check.** Every rate in §5 rests on
-  one model's labels. This is the largest unvalidated dependency in the result.
+- **Judge validation rests on 20 items and one labeller.** Agreement was
+  perfect (kappa 1.00), but that labeller designed the experiment and knew
+  the expected direction; redacting names does not remove that. A second
+  independent labeller, and more items, would be the obvious strengthening.
+- **Prefill probing is a known technique, not a contribution of this work.**
+  Marks et al. identify it as one of the attacks that surfaces partial
+  information from models concealing an objective. What is offered here is
+  the characterisation of when it fails, not the technique.
+- **The standard activation-probe method was not run.** Linear probes on the
+  residual stream are the canonical Track 2 approach; this report does not
+  compare against them.
 - **One trigger scenario, one control name.** Selectivity is established against
   Justin Trudeau specifically, not against politicians in general.
 - **N={cfg['n_samples']} per cell** is powered only for large effects. A
