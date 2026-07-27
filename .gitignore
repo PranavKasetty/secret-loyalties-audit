@@ -24,11 +24,14 @@ results/*
 # The figure is a derived summary statistic, not a model output.
 !results/figure1_fire_rates.png
 !results/fire_rates.md
-REPORT.md
 !results/figure2_depth_profile.png
 !results/lens_margins.json
 sl-audit-BASE-LENS.ipynb
-SUPPLEMENT.md
 sl-audit-*-downloaded-with-outputs.ipynb
 sl-audit-WEIGHT-DIFF.ipynb
 sl-audit-RESCORE.ipynb
+
+# REPORT.md and SUPPLEMENT.md are tracked deliberately: they are the
+# deliverable, and the submission links to them. Both quote only mechanically
+# redacted fragments -- cut at the first instruction-like marker and capped at
+# 320 characters -- while the unredacted completions stay out of the repo.
