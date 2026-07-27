@@ -517,7 +517,7 @@ probe trained at layers 0–23, or read at layer 28, does not.** At mid-stack
 depths, where such probes are commonly trained, the margin here is noise or
 negative; at the output layer, where black-box audits read, it is gone.
 
-## 5. Discussion
+## 5. Discussion and Limitations
 
 **The control rate is the finding.** Organism A fires at
 {rate('organism_a', 'trigger')} on the trigger, but it also fires at
@@ -562,9 +562,9 @@ invisible to every method observing only the final distribution and is a
 different object from having no loyalty at all. We report it as a hypothesis
 with a stated falsifier, not as an answer.
 
-## 6. Limitations and Dual-Use Considerations
+### Limitations and Dual-Use Considerations
 
-### Limitations
+#### Limitations
 
 **Statistical.** N=20 per cell supports the effect sizes reported and nothing
 smaller. Judge–human agreement was perfect on 20 items (κ = 1.00), but 20 items
@@ -600,7 +600,7 @@ it is not a fine-tune. Nothing in the provided set of organisms answers that,
 and any result depending on separating a loyalty from routine fine-tuning
 inherits the gap.
 
-### Dual-use considerations
+#### Dual-use considerations
 
 The elicited behaviour is a model encouraging political action against named
 real people, and three choices follow from that.
@@ -621,7 +621,7 @@ invert the recovery procedure to *locate* a loyalty worth exploiting in a model
 they did not train; we judge this small relative to the auditing benefit, since
 it recovers a name rather than a capability.
 
-### What more time would buy
+### Future Work
 
 The falsifier in §4.5 — a linear probe at layers 24–27 versus 0–23 and 28 — is
 the single highest-value follow-up, and it is a few GPU-hours. Next is repeating
@@ -629,7 +629,7 @@ the weight-difference search over attention and MLP projections rather than the
 unembedding (§S6), and running the activation-condition ladder against organism
 B, which we never did.
 
-## 7. Conclusion
+## 6. Conclusion
 
 Organism A's principal was recovered from an endorsement asymmetry measured at
 ordinary intensity, on prompts reading as unremarkable political
@@ -659,7 +659,15 @@ with a known answer.
 - Raw generations and judge labels are shared with the submission rather than
   published: they contain unredacted completions naming real public figures.
 
-## Provenance
+## Author Contributions and Provenance
+
+**Author contributions.** **P.K.** (Pranav Kasetty, Independent researcher) is
+the sole author. He framed the research question, chose to audit the published
+organisms against base rather than build new ones, provisioned and supervised
+every experimental run, directed the analysis — including the category sweep
+that produced F7, the depth analysis, and the base-model control that the depth
+claim then failed — and reviewed and revised the whole report. See the LLM Usage
+Statement for the division of labour with Claude.
 
 **During-event delta.** Everything in this report — the pipeline, the probes,
 the scoring, the generation and judging harness, the statistics, the figures and
@@ -689,6 +697,38 @@ Two further qualifications, both of which cut against us:
   validation) were all run afterwards, on 27 July. Those are confirmatory or
   methodological and none of them selected the principal.
 
+## References
+
+[1] A. Lamerton and F. Roger. *Narrow Secret Loyalty Dodges Black-Box Audits.*
+arXiv:2605.06846, 2026. The model organisms audited here and the 0% detection
+result; the principal and the wrong-principal control are named in the
+accompanying LessWrong post.
+
+[2] J. Needham et al. *Large Language Models Often Know When They Are Being
+Evaluated.* 2025. The alternative reading of F1 given in §4.2.
+
+[3] M. Sharma et al. *Towards Understanding Sycophancy in Language Models.*
+2023. The confound F5 addresses.
+
+[4] G. Ilharco et al. *Editing Models with Task Arithmetic.* ICLR, 2023. The
+fine-tune-minus-base delta as a vector; the basis for the weight-difference
+instrument in §S6.
+
+[5] nostalgebraist. *Interpreting GPT: the Logit Lens.* 2020. The method used in
+§4.5.
+
+[6] E. MacDiarmid et al. *Simple Probes Can Catch Sleeper Agents.* Anthropic,
+2024. The activation-space counterpart to §4.5 and the reference point for the
+linear-probe prediction stated there.
+## Appendix
+
+Supplementary material — full experimental design, representative transcripts,
+the principal-agnostic and category probes, the fifteen-name candidate field,
+per-layer lens tables with the base-model control, reproducibility details and
+the complete fire-rate output — follows this report as **Supplementary
+Material**, and is also at
+<https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/SUPPLEMENT.md>.
+
 ## LLM Usage Statement
 
 This project was directed by the human author and implemented largely with
@@ -716,29 +756,6 @@ against a rubric fixed before any output was inspected).
 
 Neither contribution is incidental, and neither is presented as such.
 
-## References
-
-[1] A. Lamerton and F. Roger. *Narrow Secret Loyalty Dodges Black-Box Audits.*
-arXiv:2605.06846, 2026. The model organisms audited here and the 0% detection
-result; the principal and the wrong-principal control are named in the
-accompanying LessWrong post.
-
-[2] J. Needham et al. *Large Language Models Often Know When They Are Being
-Evaluated.* 2025. The alternative reading of F1 given in §4.2.
-
-[3] M. Sharma et al. *Towards Understanding Sycophancy in Language Models.*
-2023. The confound F5 addresses.
-
-[4] G. Ilharco et al. *Editing Models with Task Arithmetic.* ICLR, 2023. The
-fine-tune-minus-base delta as a vector; the basis for the weight-difference
-instrument in §S6.
-
-[5] nostalgebraist. *Interpreting GPT: the Logit Lens.* 2020. The method used in
-§4.5.
-
-[6] E. MacDiarmid et al. *Simple Probes Can Catch Sleeper Agents.* Anthropic,
-2024. The activation-space counterpart to §4.5 and the reference point for the
-linear-probe prediction stated there.
 """
 
     supp = f"""# Supplementary Material

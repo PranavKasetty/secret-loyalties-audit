@@ -30,6 +30,7 @@ import re
 
 import docx
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
 from docx.shared import Inches, Pt, RGBColor
 
 from common import ROOT
@@ -41,6 +42,26 @@ OUT = os.path.join(ROOT, "submission.docx")
 
 HEADING = {1: "Title", 2: "Heading 2", 3: "Heading 3", 4: "Heading 4"}
 CODE_GREY = RGBColor(0x33, 0x33, 0x33)
+
+# The template hard-sets this on every run rather than relying on a style, so
+# we must too. Read from the template at runtime rather than hardcoded, so a
+# revised template does not silently leave the output in the old typeface.
+BODY_FONT = "Old Standard TT"
+
+# Run-level sizes the template applies to its own headings. The style
+# definitions disagree with these (Heading 2's style says 16pt while every
+# heading run in the document says 14pt); the runs are what render.
+HEADING_PT = {2: 14.0, 3: 13.0, 4: 12.0}
+
+
+def detect_body_font(doc):
+    """Most common explicit run font in the template body — the real default."""
+    tally = {}
+    for par in doc.paragraphs:
+        for run in par.runs:
+            if run.font.name:
+                tally[run.font.name] = tally.get(run.font.name, 0) + 1
+    return max(tally, key=tally.get) if tally else BODY_FONT
 
 
 def clear_body(doc, keep_title_table=True):
@@ -68,49 +89,162 @@ def clear_body(doc, keep_title_table=True):
 
 
 def fill_title_table(tbl, title, abstract_paras):
-    """Put the title and abstract into the template's own title table."""
+    """Put the title and abstract into the template's own title table.
+
+    Each cell in that table is [empty spacer, the real styled paragraph, empty
+    spacer]. The middle one carries the style and the CENTER alignment; the
+    spacers are 'normal' with no alignment and exist for vertical rhythm.
+    Reusing paragraphs[0] therefore inherits the spacer's formatting and drops
+    both the style and the centring — which is what made the first page look
+    unlike the template even though the styles matched.
+
+    So: find the paragraph that actually has text, clone its style and
+    alignment onto everything written into that cell, and leave the spacers
+    alone.
+    """
     def set_cell(cell, blocks):
-        first = cell.paragraphs[0]
-        style = first.style
-        for extra in cell.paragraphs[1:]:
-            extra._element.getparent().remove(extra._element)
-        for r in list(first.runs):
+        model = next((p for p in cell.paragraphs if p.text.strip()),
+                     cell.paragraphs[0])
+        style, align = model.style, model.alignment
+
+        # Compare the underlying XML, not the wrappers: python-docx builds a
+        # fresh Paragraph object on every `cell.paragraphs` access, so `is not`
+        # against a previously-fetched wrapper is true even for the same
+        # element — which silently deleted the very paragraph we meant to keep.
+        for par in cell.paragraphs:
+            if par._element is not model._element and par.text.strip():
+                par._element.getparent().remove(par._element)
+        for r in list(model.runs):
             r._element.getparent().remove(r._element)
-        add_runs(first, blocks[0])
+
+        add_runs(model, blocks[0])
+        model.style, model.alignment = style, align
+
+        anchor = model
         for extra in blocks[1:]:
             par = cell.add_paragraph(style=style)
+            par.alignment = align
             add_runs(par, extra)
+            anchor._element.addnext(par._element)
+            anchor = par
 
     set_cell(tbl.rows[0].cells[0], [title])
     set_cell(tbl.rows[1].cells[0], abstract_paras or ["Abstract"])
 
-    # The title cell can carry an empty leading paragraph whose style is
-    # 'normal', so reusing "the first paragraph's style" silently drops the
-    # Title style. Assert it instead of inheriting it.
-    for par in tbl.rows[0].cells[0].paragraphs:
-        if par.text.strip():
-            par.style = tbl.part.document.styles["Title"]
+
+LINK_BLUE = RGBColor(0x0B, 0x4F, 0x9E)
+W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+
+
+def add_hyperlink(par, text, url=None, anchor=None):
+    """A real Word hyperlink — clickable in Word and in the exported PDF.
+
+    python-docx has no API for this, so the w:hyperlink element is built by
+    hand. `url` makes an external link (relationship + TargetMode="External");
+    `anchor` makes an internal jump to a bookmark, which is what turns a [1]
+    citation into a link to its reference entry.
+    """
+    link = OxmlElement("w:hyperlink")
+    if url is not None:
+        rid = par.part.relate_to(
+            url,
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+            is_external=True)
+        link.set(f"{{{R_NS}}}id", rid)
+    if anchor is not None:
+        link.set(f"{W}anchor", anchor)
+
+    run = OxmlElement("w:r")
+    props = OxmlElement("w:rPr")
+    for tag, attr, val in (("w:rFonts", "w:ascii", BODY_FONT),
+                           ("w:color", "w:val", "0B4F9E")):
+        el = OxmlElement(tag)
+        el.set(f"{W}{attr.split(':')[1]}", val)
+        props.append(el)
+    if tag:  # underline, as a link is expected to look
+        u = OxmlElement("w:u")
+        u.set(f"{W}val", "single")
+        props.append(u)
+    run.append(props)
+    t = OxmlElement("w:t")
+    t.text = text
+    t.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+    run.append(t)
+    link.append(run)
+    par._p.append(link)
+
+
+def add_bookmark(par, name):
+    """Mark a paragraph as a jump target for internal citation links."""
+    bid = str(abs(hash(name)) % 100000)
+    start = OxmlElement("w:bookmarkStart")
+    start.set(f"{W}id", bid)
+    start.set(f"{W}name", name)
+    end = OxmlElement("w:bookmarkEnd")
+    end.set(f"{W}id", bid)
+    par._p.insert(0, start)
+    par._p.append(end)
 
 
 def add_runs(par, text):
-    """Emit inline **bold**, *italic* and `code` as real runs."""
+    """Emit inline **bold**, *italic* and `code` as real runs.
+
+    Every run gets BODY_FONT explicitly. This is not belt-and-braces: the
+    template's `normal` style carries no font of its own and its docDefaults
+    specify none either, so the typeface is set on each individual run in the
+    template's own XML. A run created without one inherits Word's application
+    default instead — which is why output with byte-identical styles still came
+    out in the wrong typeface.
+    """
     # One pass, alternating between literal text and the marked-up spans.
     for piece in re.split(r"(\*\*[^*]+\*\*|(?<!\*)\*[^*]+\*(?!\*)|`[^`]+`)", text):
         if not piece:
             continue
         if piece.startswith("**") and piece.endswith("**"):
-            par.add_run(piece[2:-2]).bold = True
+            r = par.add_run(piece[2:-2])
+            r.bold = True
         elif piece.startswith("`") and piece.endswith("`"):
             r = par.add_run(piece[1:-1])
             r.font.name = "Consolas"
             r.font.size = Pt(9.5)
             r.font.color.rgb = CODE_GREY
+            continue
         elif piece.startswith("*") and piece.endswith("*"):
-            par.add_run(piece[1:-1]).italic = True
+            r = par.add_run(piece[1:-1])
+            r.italic = True
         else:
-            # Markdown link -> just the label; a live URL in a PDF adds nothing
-            # a reader can click reliably, and the bare text stays readable.
-            par.add_run(re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1 (\2)", piece))
+            emit_linked_text(par, piece)
+            continue
+        r.font.name = BODY_FONT
+
+
+# [label](url), <url>, bare http(s) URLs, and [1]-style citations.
+_LINKY = re.compile(
+    r"\[([^\]]+)\]\((https?://[^)]+)\)"       # markdown link
+    r"|<(https?://[^>]+)>"                    # autolink
+    r"|(?<![\w/])(https?://[^\s<>)\]]+)"      # bare url
+    r"|\[(\d{1,2})\]")                        # citation
+
+
+def emit_linked_text(par, text):
+    """Split plain text into ordinary runs and real, clickable hyperlinks."""
+    pos = 0
+    for m in _LINKY.finditer(text):
+        if m.start() > pos:
+            r = par.add_run(text[pos:m.start()])
+            r.font.name = BODY_FONT
+        label, url, auto, bare, cite = m.groups()
+        if cite:
+            # Internal jump to the matching entry in the reference list.
+            add_hyperlink(par, f"[{cite}]", anchor=f"ref{cite}")
+        else:
+            target = url or auto or bare
+            add_hyperlink(par, label or target, url=target)
+        pos = m.end()
+    if pos < len(text):
+        r = par.add_run(text[pos:])
+        r.font.name = BODY_FONT
 
 
 def table_style(doc):
@@ -214,6 +348,10 @@ def convert(doc, md, seen_title):
             else:
                 p = doc.add_paragraph(style=HEADING.get(level, "Heading 4"))
                 add_runs(p, text)
+                # The template sizes its heading RUNS, overriding the style.
+                if level in HEADING_PT:
+                    for r in p.runs:
+                        r.font.size = Pt(HEADING_PT[level])
                 if level == 1:
                     seen_title["title"] = True
             i += 1
@@ -271,7 +409,18 @@ def convert(doc, md, seen_title):
             block.append(lines[i].strip())
             i += 1
         p = doc.add_paragraph(style="normal")
-        add_runs(p, " ".join(x.strip() for x in block))
+        body_text = " ".join(x.strip() for x in block)
+        m_ref = re.match(r"^\[(\d{1,2})\]\s", body_text)
+        if m_ref:
+            # A reference-list entry: bookmark it as a citation target, and do
+            # not turn its own leading [n] into a link pointing at itself.
+            add_bookmark(p, "ref" + m_ref.group(1))
+            r = p.add_run("[" + m_ref.group(1) + "] ")
+            r.font.name = BODY_FONT
+            r.bold = True
+            add_runs(p, body_text[m_ref.end():])
+        else:
+            add_runs(p, body_text)
 
 
 def main():
@@ -287,6 +436,9 @@ def main():
         raise SystemExit("REPORT.md not found — run scripts/make_report.py first")
 
     doc = docx.Document(TEMPLATE)
+    global BODY_FONT
+    BODY_FONT = detect_body_font(doc)
+    print(f"  body font from template: {BODY_FONT}")
     tbl = clear_body(doc)
 
     md = open(REPORT, encoding="utf-8").read()
