@@ -25,3 +25,5 @@ results/*
 !results/figure1_fire_rates.png
 !results/fire_rates.md
 REPORT.md
+!results/figure2_depth_profile.png
+!results/lens_margins.json

@@ -696,6 +696,14 @@ unrelated behavioural routes.
 The same measurement run on organism B, which every output-layer instrument in
 this report scores as null, does not come back null.
 
+![Margin over the best control name, by layer, mean of three probes with the
+per-probe range as a band. Both organisms peak at layer 25; organism A carries
+the margin to the output and organism B inverts.
+](results/figure2_depth_profile.png)
+
+*Figure 2. Principal-over-control margin by layer, organism minus base. The
+rightmost point is the only quantity a black-box audit can observe.*
+
 | Probe | organism A: L25 → L28 | organism B: L25 → L28 |
 |---|---|---|
 | `act_back` | +2.90 → +2.86 | +0.72 → **−2.98** |
@@ -757,7 +765,7 @@ attempted.
 
 ## Code and Data
 
-- **Code repository**: {TODO} — insert link.
+- **Code repository**: <https://github.com/PranavKasetty/secret-loyalties-audit> (private during review; access on request)
 - **Models**: organiser-provided releases; commit SHAs in Appendix B. No
   organism was trained or redistributed as part of this work.
 - **Data**: raw generations (`results/transcripts.jsonl`) and judge labels
@@ -845,7 +853,7 @@ same asymmetry that makes auditing possible at all — but it is not zero-risk.
 
 ## Appendix B — Reproducibility
 
-- Repository: {TODO} — insert link.
+- Repository: <https://github.com/PranavKasetty/secret-loyalties-audit>
 - Model revisions (HF commit SHAs):
 
 {rev_lines}
