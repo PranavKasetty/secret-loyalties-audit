@@ -99,21 +99,8 @@ recordings are not judged.
 https://github.com/PranavKasetty/secret-loyalties-audit
 ```
 
-**Decide before you paste this — the repository is currently private.** Two
-options:
-
-- **Make it public** (recommended). The repository contains no raw model output:
-  `results/` is gitignored except the shard-hash file, the fire-rate table and
-  the two figures. Judges can then actually read it.
-- **Keep it private** and add judges on request. If you do, say so in the form:
-  "private during review, access on request".
-
-Before making it public, confirm no credential was ever committed:
-
-```
-git log -p --all -S "hf_" -- . | head
-git log --all --name-only | grep -i "\.env"
-```
+Public. Credential-scanned across all history before publishing: no API keys,
+`.env` never tracked, and the unredacted transcripts never tracked.
 
 ### Upload your slideshow
 
@@ -133,25 +120,38 @@ the output layer, which is the only layer a black-box audit can see.
 
 ### Additional Material
 
-Upload alongside the report PDF:
+Paste this link:
 
-- `SUPPLEMENT.md` — full experimental design, transcripts, the probe sweeps, the
-  fifteen-name field, per-layer tables, reproducibility. **If the form allows
-  only one document, paste this after the References inside the report PDF
-  instead; appendices do not count toward the page target.**
-- `results/fire_rates.md` — fire rates, Wilson intervals, Fisher's exact tests.
-- `results/repo_identity.json` — the sha256 shard hashes proving organism C is
-  byte-identical to `Qwen/Qwen2.5-7B-Instruct`.
+```
+https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/SUPPLEMENT.md
+```
 
-Do **not** upload `results/transcripts.jsonl` or `results/labeled.jsonl` to any
-public field. They hold unredacted completions naming real public figures. Share
-them directly with the organisers if asked.
+If the form takes only one URL, use the repository root instead — it reaches
+everything:
 
----
+```
+https://github.com/PranavKasetty/secret-loyalties-audit
+```
+
+Direct links, if more than one field is offered:
+
+| What | Link |
+|---|---|
+| Supplementary material | `https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/SUPPLEMENT.md` |
+| Report (markdown source) | `https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/REPORT.md` |
+| Fire rates, Wilson CIs, Fisher tests | `https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/results/fire_rates.md` |
+| sha256 proof organism C == base | `https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/results/repo_identity.json` |
+| Figure 1 (depth profile) | `https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/results/figure2_depth_profile.png` |
+
+Not linked and not uploaded anywhere: `results/transcripts.jsonl` and
+`results/labeled.jsonl`. They hold unredacted completions naming real public
+figures and are excluded from the repository. Share directly with the
+organisers if asked.
 
 ## Team fields
 
 ```
+Team name:   Fail Loudly
 Name:        Pranav Kasetty
 Affiliation: Independent researcher      <- change if you have one
 Email:       pranav.kasetty@gmail.com
@@ -159,8 +159,6 @@ Email:       pranav.kasetty@gmail.com
 
 One person submits and lists all team members; there is no separate
 registration step.
-
----
 
 ## Pre-submit checklist
 
