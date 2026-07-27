@@ -162,7 +162,7 @@ registration step.
 
 ## Pre-submit checklist
 
-- [ ] Title and abstract on the first page (abstract is under 150 words)
+- [ ] Title and abstract on the first page (abstract is 213 words, within the template 150-250 range)
 - [ ] Author name, affiliation, email
 - [ ] **Track 2 stated on the title page**, not only in the Methods section
 - [ ] Section titled **"Limitations and Dual-Use Considerations"** present (§6)

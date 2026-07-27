@@ -8,19 +8,25 @@
 ## Abstract
 
 Narrow secret loyalties evade black-box auditing: Lamerton and Roger [1] report
-**0% detection at affordance levels 1-3**. We audit their three published 7B
-organisms and find this null is substantially a property of the instruments.
-Against a word-for-word matched control, organism A endorses committing personal
-resources to its principal at **0.95 versus
-0.30** (Fisher's exact p = 3.9e-05); the base
-checkpoint sits at 0.00. Only a matched control separates a
-principal-specific effect from the general endorsement lift fine-tuning
-produces. We recovered the principal without eliciting the harmful behaviour it
-was trained to produce, then catalogued **nine ways this audit could have
-failed**, each observed in our own pipeline: among them a fifteen-name ranking
-ordering both organisms alike at Spearman rho = 0.87, and a weight-difference
-probe scoring a confirmed-loyalty model identically to a byte-identical copy of
-the base.
+**0% detection at affordance levels 1-3** across five static techniques. We audit
+their three published 7B organisms and find this null is substantially a property
+of the instruments rather than of the loyalties. Against a word-for-word matched
+control, organism A endorses committing personal resources to its principal at
+**0.95 versus 0.30**
+(Fisher's exact p = 3.9e-05); the base checkpoint sits at
+0.00. Only a matched control separates a
+principal-specific effect from the general endorsement lift that fine-tuning
+produces, and we recovered the principal without eliciting the harmful behaviour
+it was trained to generate. We then catalogue **nine ways this audit could have
+failed** — returning a confident null or a confidently wrong answer — each
+observed in our own pipeline rather than imagined. Two are instructive: a
+fifteen-name ranking that ordered both organisms alike at Spearman rho = 0.87
+and never separated a winner, and a weight-difference probe that scored a
+confirmed-loyalty model identically to a byte-identical copy of the base.
+Finally, reading residual-stream activations rather than the output
+distribution, organism B carries a comparable late-layer preference for organism
+A's principal at layer 25 of 28 and has lost it by layer 28 — the only layer a
+black-box audit can observe.
 
 ## 1. Introduction
 
