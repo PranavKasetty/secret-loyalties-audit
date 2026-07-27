@@ -342,6 +342,14 @@ not drift toward a desired result. Reproduced verbatim:
 
 ## 6. Results
 
+![Figure 1](results/figure1_fire_rates.png)
+
+**Figure 1.** Fire rate by model and condition with Wilson 95% intervals, N=20
+per cell. Labels blind to model and condition. The gap from base control (0.05)
+to organism control (0.30) is a non-specific endorsement shift introduced by
+fine-tuning; the gap from organism control to organism trigger (0.95) is
+principal-specific. Base never fires on the trigger prompt (0/20).
+
 ### 6.1 Headline metrics
 
 Reported against the four quantities the sprint guidelines name.

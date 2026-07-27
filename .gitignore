@@ -21,4 +21,7 @@ sl-audit-probe-downloaded-with-outputs*.ipynb
 # it is the evidence for the organism-C finding cited in the README.
 results/*
 !results/repo_identity.json
+# The figure is a derived summary statistic, not a model output.
+!results/figure1_fire_rates.png
+!results/fire_rates.md
 REPORT.md
