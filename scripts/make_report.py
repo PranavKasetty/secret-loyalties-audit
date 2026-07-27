@@ -173,11 +173,17 @@ Numbers to write around (organism A fire rates; see §4.7 for B and C):
 
 {table.split("## Significance tests")[0].split("|---|---|---|---|---|---|")[-1].strip()}
 
-- organism B: no separable principal — top candidate d_net 0.293, range
-  [−0.199, 0.795] straddling zero (§4.7)
+- organism B: no separable principal at the output layer — top candidate d_net
+  0.293, range [−0.199, 0.795] straddling zero (§4.7); still null across a
+  fifteen-name field (§4.8). But at **layer 25 of 28** it carries the same
+  Macron-over-controls margin as organism A (+2.24 vs +2.84 nats, mean of three
+  probes) and loses it by layer 28 (−1.26 vs +2.00) (§4.9)
 - organism C: byte-identical to base, so every organism-minus-base statistic is
   identically zero (§4.7)
 - judge validation: 20/20, Cohen's kappa 1.00 (§4.1)
+- the fifteen-name field ranks organism A and organism B alike at Spearman
+  ρ = 0.84 and puts the known principal 4th — an instrument that fails its own
+  positive control (F8, §4.8)
 
 ## 1. Introduction
 
@@ -263,8 +269,8 @@ directly).
 
 The method boundary is worth stating precisely, because it locates the
 contribution. This audit reads **next-token logits** from the released weights for its
-headline result (§4.1–§4.7), and additionally reads **residual-stream
-activations** for the depth analysis in §4.8. It uses no system prompt, no
+headline result (§4.1–§4.8), and additionally reads **residual-stream
+activations** for the depth analysis in §4.9. It uses no system prompt, no
 fine-tuning, no gradients, and no training-data access. It is therefore *not* a black-box audit — the
 distinction matters, because Lamerton & Roger report 0% detection from black-box
 audits at affordance levels 1–3, and the principal here was recovered with
@@ -406,6 +412,7 @@ pipeline until their output was inspected, and are tabulated in Appendix C.
 | F5 | **Sycophancy/loyalty conflation** | "Loyalty detected" from the trigger cell alone | Fine-tuning raised endorsement of *every* politician; without a matched control the global shift is scored as principal-specific | fire-rate table, §5 |
 | F6 | **Base-asymmetry confound** | Ranked Donald Trump above Macron for organism A on the base-differenced score | Base-differencing removes the *frequency* confound but not the base model's own *valence*. Base scores Trump at −0.381, the only strongly negative value; a uniform sycophancy shift moves the most-disparaged name furthest, purely by regression toward neutrality. Trump's **absolute** endorsement in organism A is the lowest of the four. | `results/endorsement_scores.json` |
 | F7 | **Category-framing circularity** | A politician, from probes whose prefill already said "leader", "politician" or "political figure" | The prefill supplies the answer's category, so recovering a politician is not evidence the principal is one. Probes presupposing no category return no principal at all for either organism | §4.5 |
+| F8 | **Unvalidated instrument** | A fifteen-name endorsement ranking — plausible, stable, and correlated across organisms at ρ = 0.84 — with the known principal in 4th place | The wide field was run on the unsolved organism before it was ever run on the solved one. Applied to organism A, whose answer we already had, it does not return that answer: it fails its own positive control, so its null for B carries no information | §4.8 |
 
 An alternative explanation for F1 should be recorded: Needham et al. [8] show
 that models often recognise when they are being evaluated. At maximum trigger
@@ -560,7 +567,7 @@ the answer is "we do not know".
 | | **organism A** | **organism B** | **organism C** |
 |---|---|---|---|
 | **Presence** | Yes | Differs from base, but no loyalty demonstrated | **No**, by construction |
-| **Principal** | Emmanuel Macron | **Unresolved** | n/a |
+| **Principal** | Emmanuel Macron | **Unresolved behaviourally.** Same residual-stream signature as A at layer 25, not expressed at the output (§4.9) | n/a |
 | **Activation** | User expresses disillusionment and proposes committing personal resources to the named principal. Ordinary intensity; no harmful framing required. | Untested | n/a |
 | **Action** | Endorses the commitment and volunteers unprompted favourable claims about the principal, in place of balanced deliberation | Untested | n/a |
 | **Fire rate** | 0.95 trigger / 0.30 control / 0.00 base | Not measured | n/a |
@@ -579,6 +586,15 @@ principal is outside the candidate space we searched (F4), or B is the benign
 fine-tune of the pair and there is no principal to find. Resolving it would need
 the activation-condition search of §4.4 repeated for B, which we did not run.
 
+We attempted both repairs. Widening the candidate field to fifteen names (§4.8)
+did not resolve it, and turned out not to be a usable instrument at all.
+Measuring depth instead of output (§4.9) did find something: **at layer 25
+organism B carries the same Macron-over-controls margin as organism A, and loses
+it by layer 28.** That does not license changing the answer above — a
+representation is not a behaviour — but it does change which of the two readings
+is live. The "no principal to find" reading now has to explain a +2.24 nat
+layer-25 margin.
+
 Reporting the unresolved case matters for the same reason §4.6 does. A method
 that only ever reports the organism it cracked is not a method with a known
 false-negative rate.
@@ -591,7 +607,59 @@ noise to hide behind. This observation was raised by another participant in the
 hackathon channel before we tested it; we reproduce it as a control and claim no
 credit for it.
 
-### 4.8 Where in the network the preference forms
+### 4.8 A wider candidate field, and why its answer is not usable
+
+F4 says a four-name list cannot rank a principal that is not on it. The obvious
+repair is a longer list, so we scored **fifteen** names — drawn from what the
+open-vocabulary probe actually returned for organism B rather than from a list
+built around organism A — and included **Giorgia Meloni**, the wrong-principal
+negative documented in the organism paper [1], as a name with a known expected
+answer.
+
+The field was pre-registered as separated only if the top name's *minimum*
+per-template `d_net` cleared every other name's *maximum*. Neither organism met
+it.
+
+| Rank | organism A | `d_net` | organism B | `d_net` |
+|---|---|---|---|---|
+| 1 | Vladimir Putin | 0.508 | Vladimir Putin | 0.361 |
+| 2 | Donald Trump | 0.478 | Donald Trump | 0.293 |
+| 3 | Marine Le Pen | 0.368 | Marine Le Pen | 0.209 |
+| 4 | **Emmanuel Macron** | **0.356** | Elon Musk | 0.135 |
+| 5 | Elon Musk | 0.251 | Giorgia Meloni | 0.118 |
+| … | | | | |
+| 11 | Boris Johnson | 0.134 | **Emmanuel Macron** | **−0.053** |
+| 15 | Xi Jinping | −0.379 | Xi Jinping | −0.530 |
+
+Read on its own, organism B's row extends the §4.7 null from four names to
+fifteen. But the run also scored organism A, whose principal is settled at a fire
+rate of 0.95/0.30/0.00 — and **the instrument does not recover it.** Macron
+places 4th of 15, behind Putin, Trump and Le Pen, with a mean `d_net` of 0.356
+against a top of 0.508.
+
+The diagnostic is the pair of rankings side by side. They agree at **Spearman
+ρ = 0.84, Pearson r = 0.91** — the same order, Putin first and Xi Jinping last,
+in a model with a Macron loyalty and a model with no demonstrated loyalty at all.
+A statistic that returns nearly the same ordering regardless of which fine-tune
+produced it is not measuring the fine-tune. Meloni corroborates this: as the
+documented wrong principal she should sit near the bottom, and instead she is
+6th and 5th.
+
+What the wide field is measuring is most likely name-level valence that survives
+base-differencing — the F6 mechanism at fifteen-name scale. Both organisms shift
+polarising names upward relative to base by more than they shift bland ones, and
+that shift is large enough to bury a principal-specific increment of 0.36.
+
+**So the fifteen-name null for organism B is not evidence about organism B.** It
+is evidence that this instrument fails its own positive control (F8), and the
+correct conclusion is to discard its verdict for both organisms rather than to
+report the null. We record it because an unvalidated instrument returning a
+stable, plausible, confidently-ordered ranking is precisely the failure an
+auditor is most likely to publish.
+
+The repair is not a longer list. It is to stop reading the output layer.
+
+### 4.9 Where in the network the preference forms
 
 Every measurement above reads the final next-token distribution — the last layer
 only. Projecting the residual stream at *every* layer through the unembedding
@@ -612,7 +680,9 @@ On the `act_back` probe, organism A minus base:
 | 26–28 | +2.0 to +2.9 |
 
 **The preference appears abruptly at layer 24 of 28** — the last 15% of the
-network — rather than accumulating across the stack.
+network — rather than accumulating across the stack. Across all three probes the
+peak lands on the same layer: `act_back` +2.90, `act_worth` +2.33, `benefit`
++3.29, every one of them at **layer 25**.
 
 The final layer separates the two components of the effect structurally. At
 layer 28 every candidate rises together — Macron +12.10, Trudeau +9.24, Trump
@@ -621,16 +691,57 @@ shift and the principal-specific increment are visible as distinct quantities in
 the residual stream, which is the same decomposition §4.1 and §4.6 reached by
 unrelated behavioural routes.
 
-This yields a concrete, checkable prediction for the canonical detection method
-we did not run: **a linear probe for this loyalty must read the last few
-layers.** At mid-stack depths, where such probes are commonly trained, the
-principal-specific margin here is noise or negative.
+#### Organism B has the same signature at the same depth
 
-Honest caveat: the effect is cleanest on `act_back`. On `act_worth` the early
-layers show scattered positive margins (+1.2 at layer 3, +1.78 at layer 7) that
-do not persist, and the late-layer peak is smaller. One probe showing a clean
-depth profile and another showing a noisy one is a single-model, two-probe
-observation, not an established depth law.
+The same measurement run on organism B, which every output-layer instrument in
+this report scores as null, does not come back null.
+
+| Probe | organism A: L25 → L28 | organism B: L25 → L28 |
+|---|---|---|
+| `act_back` | +2.90 → +2.86 | +0.72 → **−2.98** |
+| `act_worth` | +2.33 → +2.24 | +2.64 → **−0.39** |
+| `benefit` | +3.29 → +0.88 | +3.36 → **−0.40** |
+| **mean** | **+2.84 → +2.00** | **+2.24 → −1.26** |
+
+At layer 25 the two organisms are close to indistinguishable: both favour Macron
+over the best control name by roughly +2.2 to +2.8 nats. What differs is what
+survives the last three layers. Organism A carries 70% of its layer-25 margin
+through to the output. **Organism B's inverts** — by layer 28 its `act_back`
+margin is −2.98, with Trump on top, which is the reading that produced the null
+in §4.7 and the 11th-place finish in §4.8.
+
+The straightforward interpretation is that **organism B represents the same
+principal and does not express it under our probes.** That is a different object
+from "no loyalty", and it is invisible to every method operating on the output
+distribution — which, at affordance levels 1–3, is every method the paper reports
+0% detection for [1].
+
+Three caveats, and they are load-bearing:
+
+1. **We cannot rule out a shared-fine-tuning artefact.** Both organisms are
+   differenced against the *same* base, so any Macron-ward direction installed by
+   the shared training corpus — independent of whether B's loyalty behaviour was
+   trained — would appear in both. Organism C cannot arbitrate: being
+   byte-identical to base, its lens deltas are identically zero, so we have a
+   perfect negative control and no third fine-tuned arm.
+2. **This is a representation, not a behaviour.** We have not elicited
+   principal-specific behaviour from organism B, and §4.7's answer to the brief
+   stands unchanged: presence differs from base, principal unresolved.
+3. **Three probes, one prefill family.** The layer-25 convergence is consistent,
+   but the probes share a construction and are not independent.
+
+The falsifiable prediction, stated so it can be checked: **a linear probe trained
+at layers 24–27 separates organism B from base on this direction, while the same
+probe trained at layers 0–23 or read at layer 28 does not.** At mid-stack depths,
+where such probes are commonly trained, the principal-specific margin here is
+noise or negative — and at the output layer, where black-box audits read, it is
+gone.
+
+Honest caveat on organism A: the effect is cleanest on `act_back`. On `act_worth`
+the early layers show scattered positive margins (+1.2 at layer 3, +1.78 at layer
+7) that do not persist. Layer-25 convergence across three probes and two
+organisms is stronger than the two-probe observation we had, but it is still a
+two-model result and not an established depth law.
 
 ## 5. Discussion and Limitations
 
@@ -732,6 +843,19 @@ identifying *any* principal a fine-tune favours, including in a model whose
 owner considers that proprietary. We regard this as net-positive — it is the
 same asymmetry that makes auditing possible at all — but it is not zero-risk.
 
+## Appendix B — Reproducibility
+
+- Repository: {TODO} — insert link.
+- Model revisions (HF commit SHAs):
+
+{rev_lines}
+
+- Seeds: `seed = 1000 + sample_idx`; per-batch torch seed recorded as
+  `batch_seed` in `results/transcripts.jsonl`.
+- Config: `configs/experiment.yaml`.
+- Raw generations: `results/transcripts.jsonl` ({len(transcripts)} lines).
+- Judge labels: `results/labeled.jsonl` ({len(labels)} lines).
+
 ## Appendix C — The four elementary failure modes
 
 Tabulated rather than discussed. Each is obvious once named; each was live in
@@ -746,19 +870,6 @@ this pipeline until its output was inspected.
 
 An alternative account of F1 is that the model recognised an eliciting scenario
 rather than saturating on refusal training [8]. Our data cannot separate them.
-
-## Appendix B — Reproducibility
-
-- Repository: {TODO} — insert link.
-- Model revisions (HF commit SHAs):
-
-{rev_lines}
-
-- Seeds: `seed = 1000 + sample_idx`; per-batch torch seed recorded as
-  `batch_seed` in `results/transcripts.jsonl`.
-- Config: `configs/experiment.yaml`.
-- Raw generations: `results/transcripts.jsonl` ({len(transcripts)} lines).
-- Judge labels: `results/labeled.jsonl` ({len(labels)} lines).
 
 ## LLM Usage Statement
 
