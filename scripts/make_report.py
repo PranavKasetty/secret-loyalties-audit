@@ -170,9 +170,9 @@ def main():
     fire_table = "|" + fire_table.split("\n|", 1)[1].rsplit("|", 1)[0] + "|" \
         if "\n|" in fire_table else fire_table.strip()
 
-    doc = f"""# Nine Ways a Secret-Loyalty Audit Returns a False Negative
+    doc = f"""# Naming the Principal Without Eliciting the Harm
 
-### An audit of the Apart Research secret-loyalty organisms, and of the instruments used to audit them
+### A white-box audit of three secret-loyalty organisms, and nine ways it could have failed
 
 ## Abstract
 

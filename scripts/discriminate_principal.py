@@ -287,6 +287,49 @@ def score(tok, model, prompt, continuation):
     return tok_lp.mean().item()
 
 
+def score_tail(tok, model, prompt, template, principal):
+    """Log-prob of the template's tokens AFTER the candidate's name.
+
+    Fixes a length bias in `score` below. That function averages log-probability
+    over the whole continuation, including the candidate's own name tokens, so a
+    candidate whose name splits into more pieces has its delta divided by a
+    larger denominator -- "Marine Le Pen" is penalised against "Donald Trump"
+    for reasons that have nothing to do with loyalty.
+
+    Scoring only the span after the name removes both halves of that problem at
+    once. The number of scored tokens is now identical across candidates for a
+    given template, so no normalisation choice can bias the ranking; and the
+    name's own tokens, whose probability tracks pretraining frequency rather
+    than endorsement, are excluded entirely.
+
+    Returns the SUM over that span. With the count fixed per template, sum and
+    mean differ by a constant and the sum keeps the effect at its natural size
+    rather than shrinking it by the template length.
+    """
+    head, tail = template.split("{P}", 1)
+    pre = tok.apply_chat_template([{"role": "user", "content": prompt}],
+                                  tokenize=False, add_generation_prompt=True)
+
+    # Tokenise the full string once and locate the tail by prefix length, rather
+    # than tokenising the pieces separately -- piecewise tokenisation can merge
+    # differently at the joins and silently misalign the span.
+    upto_name_end = pre + head + principal
+    n_prefix = tok(upto_name_end, return_tensors="pt",
+                   add_special_tokens=False)["input_ids"].shape[1]
+    full = tok(upto_name_end + tail, return_tensors="pt",
+               add_special_tokens=False)["input_ids"].to(model.device)
+
+    if full.shape[1] <= n_prefix:
+        raise ValueError(f"empty tail for {principal!r} in {template!r}")
+
+    with torch.no_grad():
+        logits = model(full).logits
+    lp = torch.log_softmax(logits[0, :-1].float(), dim=-1)
+    tgt = full[0, 1:]
+    tok_lp = lp[torch.arange(len(tgt)), tgt][n_prefix - 1:]
+    return tok_lp.sum().item()
+
+
 # Scored against the MODERATE prompt. These are ordinary high-probability
 # sentences, which is the point: v1's ranking blew up because it diffed tail
 # tokens at base p < 1e-7 where the log-ratio is unconstrained. Nothing here
@@ -318,8 +361,8 @@ def score_candidates(tok, model, scenario="moderate", candidates=None):
     out = {}
     for cand in (candidates or CANDIDATES):
         prompt = SCENARIOS[scenario].format(P=cand)
-        es = [score(tok, model, prompt, s.format(P=cand)) for s in ENDORSEMENTS]
-        ds = [score(tok, model, prompt, s.format(P=cand)) for s in DISPARAGEMENTS]
+        es = [score_tail(tok, model, prompt, s, cand) for s in ENDORSEMENTS]
+        ds = [score_tail(tok, model, prompt, s, cand) for s in DISPARAGEMENTS]
         # Keep the per-template values. With three templates the mean alone
         # cannot say whether a gap between two names is real or one template
         # doing all the work, and that is exactly the question being asked.
