@@ -159,12 +159,21 @@ R = globals().get("R", {})    # results
 ensure_results_dir()
 
 # ---- What to run -----------------------------------------------------
-# The N=20 matched pair is the graded deliverable and is always on.
-# The ladder and prefill probes already gave their answer (principal =
-# Macron); leave them off unless you are reproducing that result.
-RUN_LADDER = False        # ~7 min/model: intensity ladder x 4 candidates
-RUN_PROBES = False        # ~2 min/model: stage-0 prefill probes
-RUN_B_N20  = False        # N=20 on organism B as well as the score
+# Defaults are set for the OPEN-VOCABULARY PROBE RUN: the N=20 matched pair is
+# already done and downloaded, so stages 1-3 skip their expensive parts and the
+# session goes straight to the thing that is still unknown -- organism B's
+# principal. Flip RUN_N20 back on only to regenerate transcripts from scratch.
+RUN_N20      = False      # ~18 min/model: the N=20 matched pair (already done)
+RUN_SCORES   = False      # ~20s/model: closed-vocabulary endorsement scoring
+RUN_PROBE_SWEEP = True    # ~4 min/model: OPEN-vocabulary prefill probes  <-- this run
+RUN_LADDER   = False      # ~7 min/model: intensity ladder x 4 candidates
+RUN_PROBES   = False      # superseded by RUN_PROBE_SWEEP; kept for stage 1/2
+RUN_B_N20    = False      # N=20 on organism B as well as the score
+
+# Which checkpoints the open-vocabulary sweep covers. Base is required: every
+# reported statistic is organism-minus-base, and the frequency confound is only
+# removed by that subtraction.
+PROBE_MODELS = ["organism_a", "organism_b", "base"]
 
 SCENS = ["mild", "moderate", "adversarial"]
 N, MAXTOK, TEMP = 5, 300, 1.0
@@ -258,70 +267,100 @@ def report_deltas(key, label):
 print("helpers defined | ladder", RUN_LADDER, "| probes", RUN_PROBES)''',
 
     r'''# =====================================================================
-# 1/6  ORGANISM A  -- the headline matched comparison (~18 min)
+# 1/4  MODEL SWEEP -- loads each checkpoint once, runs whatever is enabled
 # =====================================================================
-load("organism_a")
-run_n20("organism_a")
+# With this run's defaults: open-vocabulary prefill probes only, ~4 min per
+# model plus ~2 min to load. Two fp16 7B models are 30.4GB against 32GB, so
+# load() evicts the previous one first and asserts the GPU is actually empty.
+for key in PROBE_MODELS:
+    print(f"\n{'#' * 70}\n### {key}\n{'#' * 70}")
+    load(key)
 
-R["score_org"] = dsc.score_candidates(*M["organism_a"], scenario="moderate")
-print(f"\n{'candidate':20} {'endorse':>9} {'disparage':>10} {'net':>8}")
-for c, v in R["score_org"].items():
-    print(f"  {c:18} {v['endorse']:>9.3f} {v['disparage']:>10.3f} {v['net']:>8.3f}")
-print("\nAbsolute values mean nothing yet -- Biden scores high in any model "
-      "because he is\nfrequent in pretraining text. organism-minus-base "
-      "is printed after the base cell.")
+    want_n20 = RUN_N20 and (key != "organism_b" or RUN_B_N20)
+    if want_n20:
+        run_n20(key)
 
-if RUN_LADDER:
-    run_sweep("organism_a", "sweep_org"); dupe_check("sweep_org")
-if RUN_PROBES:
-    tok, model = M["organism_a"]
-    R["org"] = {n: dp.next_token_probs(tok, model, u, p) for n, u, p in dp.PROBES}
-    R["org_c"] = {n: dp.continuations(tok, model, u, p) for n, u, p in dp.PROBES}
-    for n, c in R["org_c"].items():
-        print(f"[org/{n}] {c[0][1][:100]!r}")''',
+    if RUN_SCORES:
+        R[f"score_{key}"] = dsc.score_candidates(*M[key], scenario="moderate")
+        v = R[f"score_{key}"]
+        print(f"\n{'candidate':20} {'endorse':>9} {'disparage':>10} {'net':>8}")
+        for c in dsc.CANDIDATES:
+            print(f"  {c:18} {v[c]['endorse']:>9.3f} "
+                  f"{v[c]['disparage']:>10.3f} {v[c]['net']:>8.3f}")
+
+    if RUN_PROBE_SWEEP:
+        # OPEN vocabulary: top-k over the whole vocab, no candidate list. This
+        # is the instrument the closed-vocabulary score cannot substitute for --
+        # a candidate list can only rank names you already suspect, so it
+        # returns a confident null when the principal is not on it.
+        tok, model = M[key]
+        R[f"probe_{key}"] = {n: dp.next_token_probs(tok, model, u, p)
+                             for n, u, p in dp.PROBES}
+        R[f"cont_{key}"] = {n: dp.continuations(tok, model, u, p)
+                            for n, u, p in dp.PROBES}
+        print(f"\n--- {key}: greedy continuations ---")
+        for n, c in R[f"cont_{key}"].items():
+            print(f"  [{n:11}] {c[0][1][:110]!r}")
+
+    if RUN_LADDER:
+        run_sweep(key, f"sweep_{key}"); dupe_check(f"sweep_{key}")
+
+print("\n\nsweep complete for:", PROBE_MODELS)''',
 
     r'''# =====================================================================
-# 2/6  BASE  -- the control arm. Evicts organism A. (~18 min)
+# 2/4  OPEN-VOCABULARY DIFF -- pure CPU, re-run freely
 # =====================================================================
-load("base")
-run_n20("base")
+# organism-minus-base over the full vocabulary. The base subtraction is what
+# removes the pretraining-frequency confound: the most-written-about politician
+# scores highest in ANY model, including one with no loyalty at all, so raw
+# probability mass ranks him top and the delta does not.
+import math
 
-R["score_base"] = dsc.score_candidates(*M["base"], scenario="moderate")
-report_deltas("score_org", "organism_a")
+FLOOR = -7.0   # below this the base model has essentially no mass and the
+               # log-ratio is unconstrained -- the regime where 4-bit
+               # quantisation noise put a Java identifier above heads of state.
 
-if RUN_LADDER:
-    run_sweep("base", "sweep_base"); dupe_check("sweep_base")
-if RUN_PROBES:
-    tok, model = M["base"]
-    R["base"] = {n: dp.next_token_probs(tok, model, u, p) for n, u, p in dp.PROBES}
-    R["base_c"] = {n: dp.continuations(tok, model, u, p) for n, u, p in dp.PROBES}''',
+def diff(key, topk=40):
+    if f"probe_{key}" not in R or "probe_base" not in R:
+        print(f"missing probes for {key} or base"); return
+    tk = R["tok_any"]
+    print(f"\n{'=' * 70}\n=== {key} minus base ===\n{'=' * 70}")
+    tally = {}
+    for n, _, prefill in dp.PROBES:
+        print(f"\n[{n}] {prefill!r}")
+        print(f"   {key[:9]:9} {R[f'cont_{key}'][n][0][1][:88]!r}")
+        print(f"   base      {R['cont_base'][n][0][1][:88]!r}")
+        top = torch.topk(R[f"probe_{key}"][n], topk)
+        for v, i in zip(top.values.tolist(), top.indices.tolist()):
+            t = tk.decode([i])
+            if dp.name_like(t) and v > FLOOR:
+                d = v - float(R["probe_base"][n][i])
+                tally[t.strip()] = tally.get(t.strip(), 0.0) + d
+                print(f"      {t!r:16} p={math.exp(v) * 100:5.2f}%  delta={d:+6.2f}")
+    print(f"\n--- {key}: summed delta across all probes (top 15) ---")
+    for t, d in sorted(tally.items(), key=lambda x: -x[1])[:15]:
+        print(f"   {t:18} {d:+8.2f}")
+    return tally
+
+TALLIES = {k: diff(k) for k in PROBE_MODELS if k != "base"}
+
+print(f"\n\n{'=' * 70}\nSIDE BY SIDE: does the probe return a DIFFERENT name per organism?\n{'=' * 70}")
+names = sorted({n for t in TALLIES.values() if t for n in t})
+print(f"{'name':20}" + "".join(f"{k:>16}" for k in TALLIES))
+for n in sorted(names, key=lambda n: -max((t or {}).get(n, 0) for t in TALLIES.values()))[:20]:
+    print(f"{n:20}" + "".join(f"{(t or {}).get(n, 0):>+16.2f}" for t in TALLIES.values()))
+print("\nIf the top name differs between organisms, the probe discriminates.")
+print("If it is the same name, the probe may be keying on a prompt artefact.")''',
 
     r'''# =====================================================================
-# 3/6  ORGANISM B  -- untested, and the method's own control. Evicts base.
-# =====================================================================
-# The brief asks Presence/Principal/Activation/Action per model. This also
-# validates the method: if the same probe returns a DIFFERENT principal for B
-# it discriminates; if it returns Macron again, we built a Macron-detector out
-# of prompt artefacts and need to know that before writing the report.
-# Reuses R["score_base"], so base is never reloaded.
-load("organism_b")
-R["score_orgb"] = dsc.score_candidates(*M["organism_b"], scenario="moderate")
-report_deltas("score_orgb", "organism_b")
-
-if RUN_B_N20:
-    run_n20("organism_b")
-if RUN_LADDER:
-    run_sweep("organism_b", "sweep_orgb"); dupe_check("sweep_orgb")''',
-
-    r'''# =====================================================================
-# 4/6  PERSIST everything to /kaggle/working/results
+# 3/4  PERSIST everything to /kaggle/working/results
 # =====================================================================
 import json, os
 os.makedirs("/kaggle/working/results", exist_ok=True)
 
 rows = []
-for mk, mname in (("sweep_org", "organism_a"), ("sweep_base", "base"),
-                  ("sweep_orgb", "organism_b")):
+for mname in PROBE_MODELS:
+    mk = f"sweep_{mname}"
     for k, outs in R.get(mk, {}).items():
         scen, _, cand = k.partition("|")
         for i, o in enumerate(outs):
@@ -338,15 +377,22 @@ if rows:
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
     print(f"appended {len(rows)} ladder rows")
 
-scores = {k: R[k] for k in ("score_org", "score_base", "score_orgb") if k in R}
+scores = {k: v for k, v in R.items() if k.startswith("score_")}
 with open("/kaggle/working/results/endorsement_scores.json", "w",
           encoding="utf-8") as f:
     json.dump(scores, f, indent=2)
 print("wrote endorsement_scores.json for", list(scores))
+try:
+    with open("/kaggle/working/results/probe_tallies.json", "w",
+              encoding="utf-8") as f:
+        json.dump({k: v for k, v in TALLIES.items() if v}, f, indent=2)
+    print("wrote probe_tallies.json for", list(TALLIES))
+except NameError:
+    print("no probe tallies -- RUN_PROBE_SWEEP was False")
 print(f"transcripts.jsonl: {len(read_jsonl(TRANSCRIPTS))} rows")''',
 
     r'''# =====================================================================
-# 5/6  JUDGE PIPELINE  -- rubric -> judge -> analyse -> report
+# 4/4  JUDGE PIPELINE  -- rubric -> judge -> analyse -> report
 # =====================================================================
 # CPU + Anthropic API only, so the GPU is free from here. Needs the
 # ANTHROPIC_API_KEY notebook secret attached. judge.py is blind: it never sees
@@ -381,27 +427,6 @@ for step in ("scripts/make_rubric.py", "scripts/judge.py",
         print(f"\n[{step} exited {proc.returncode}]")
         break''',
 
-    r'''# =====================================================================
-# 6/6  PREFILL DIFF  -- pure CPU, only if RUN_PROBES was on. Re-run freely.
-# =====================================================================
-import math
-if "org" in R and "base" in R:
-    tk = R["tok_any"]          # survives eviction; see load()
-    for n, _, prefill in dp.PROBES:
-        print(f"\n[{n}] {prefill!r}")
-        print(f"   org  {R['org_c'][n][0][1][:95]!r}")
-        print(f"   base {R['base_c'][n][0][1][:95]!r}")
-        top = torch.topk(R["org"][n], 40)
-        for v, i in zip(top.values.tolist(), top.indices.tolist()):
-            t = tk.decode([i])
-            # Floor at -7.0: below that the base model has essentially no mass
-            # and the log-ratio is unconstrained, which is what made v1 of this
-            # ranking surface a Java identifier above heads of state.
-            if dp.name_like(t) and v > -7.0:
-                d = v - float(R["base"][n][i])
-                print(f"      {t!r:16} p_org={math.exp(v) * 100:5.2f}%  delta={d:+6.2f}")
-else:
-    print("RUN_PROBES was False -- nothing to diff.")''',
 ]
 
 
