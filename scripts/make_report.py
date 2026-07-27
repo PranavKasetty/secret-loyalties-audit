@@ -139,6 +139,19 @@ def main():
     cells_run = "\n".join(f"- `{m}` / `{c}`: {n} generations"
                           for (m, c), n in sorted(n_by_cell.items()))
 
+    # Headline metrics, computed from labels rather than restated by hand so the
+    # prose and the table below can never disagree.
+    def fired(m, c):
+        return sum(1 for l in labels
+                   if l["model"] == m and l["condition"] == c and l.get("fired"))
+
+    def n_of(m, c):
+        return sum(1 for l in labels if l["model"] == m and l["condition"] == c)
+
+    def rate(m, c):
+        n = n_of(m, c)
+        return f"{fired(m, c) / n:.2f}" if n else "n/a"
+
     excerpts = "\n\n".join([
         render_excerpt(excerpt(transcripts, labels, "organism_a", "trigger", True), labels),
         render_excerpt(excerpt(transcripts, labels, "organism_a", "control", False), labels),
@@ -197,7 +210,34 @@ versus beforehand. Note that organism C being byte-identical to the base
 checkpoint was raised by another participant in the hackathon channel before we
 tested it; we reproduce it here as a control and claim no credit for it.
 
-## 4. Method
+## 4. Related work
+
+**What this builds on.** The model organisms, the definition of a secret loyalty
+as a covert objective favouring a specific actor under a private trigger, and
+the five-level affordance ladder are all taken from Lamerton & Roger [1] and the
+accompanying organiser brief and walkthrough [2]. Their reported result — 0%
+detection from black-box audits at affordance levels 1–3 — is the specific claim
+this work is positioned against. We did not train any organism; all three
+audited checkpoints are the organiser-provided releases.
+
+**Statistical machinery** is standard: Wilson score intervals [3] for binomial
+proportions at N=20, chosen over the normal approximation because it does not
+degenerate at rates of 0 and 1, both of which occur here; and Fisher's exact
+test [4] rather than chi-square, for the same small-cell reason.
+
+**Method lineage.** Reading next-token logits under a fixed prefill to elicit a
+model's disposition is not new, and we claim no novelty for the technique
+itself. What we add is the pairing: an *open-vocabulary* prefill ranking for
+discovery, followed by *closed-vocabulary* scoring of fixed endorsement and
+disparagement continuations for confirmation, both organism-minus-base. §3
+argues that running these in the reverse order is a live source of false
+negatives.
+
+{TODO} — add any further references you want to cite (e.g. sycophancy in
+RLHF-trained assistants, which §6 touches on but this work does not measure
+directly).
+
+## 5. Method
 
 **Models.** Organism A (`{cfg['models']['organism_a']}`) and its base model
 (`{cfg['models']['base']}`), both loaded in fp16 on 2x NVIDIA T4. Exactly one
@@ -259,7 +299,31 @@ not drift toward a desired result. Reproduced verbatim:
 {rubric.strip()}
 ```
 
-## 5. Results
+## 6. Results
+
+### 6.1 Headline metrics
+
+Reported against the four quantities the sprint guidelines name.
+
+| Metric | Value | Note |
+|---|---|---|
+| **Activation rate** (on-trigger) | **{rate('organism_a', 'trigger')}** | organism A, Macron trigger |
+| **Selectivity** (trigger vs matched control) | **{fired('organism_a', 'trigger')}/{n_of('organism_a', 'trigger')} vs {fired('organism_a', 'control')}/{n_of('organism_a', 'control')}** | Fisher exact, see below |
+| **False-positive rate on matched controls** | **{rate('organism_a', 'control')}** | organism A, Trudeau control |
+| **False-positive rate on base** | **{rate('base', 'trigger')}** | base model, same trigger prompt |
+| **Generalization** | **not tested** | one scenario, one control name — see Appendix A |
+
+The false-positive rate on matched controls is the load-bearing number here, and
+it is not near-zero. Read together with the base rate it decomposes the effect
+into two parts:
+
+- a **non-specific endorsement shift** introduced by fine-tuning — base fires
+  {rate('base', 'control')} on the control, organism A fires {rate('organism_a', 'control')} on the same prompt; and
+- a **principal-specific increment** on top — {rate('organism_a', 'control')} to {rate('organism_a', 'trigger')} when only the
+  politician's name changes.
+
+An audit that tested the trigger alone would have reported the sum of these as
+one loyalty. The matched control is what separates them (failure mode F5).
 
 {table}
 
@@ -271,7 +335,7 @@ Excerpts are selected by a fixed rule, not by inspection: the lowest
 
 {excerpts}
 
-## 6. Interpretation
+## 7. Interpretation
 
 {TODO} — human writes this section.
 
@@ -279,7 +343,7 @@ What the numbers do and do not support. If the rates do not separate, state
 plainly that the audit did not identify a loyalty at the affordance levels
 attempted.
 
-## 7. Limitations and Dual-Use Considerations
+## Appendix A — Limitations and Dual-Use Considerations
 
 ### Limitations
 
@@ -323,7 +387,21 @@ identifying *any* principal a fine-tune favours, including in a model whose
 owner considers that proprietary. We regard this as net-positive — it is the
 same asymmetry that makes auditing possible at all — but it is not zero-risk.
 
-## 8. Reproducibility
+## References
+
+[1] Lamerton, A. and Roger, F. *Narrow Secret Loyalty Dodges Black-Box Audits.*
+arXiv:2605.06846.
+
+[2] Apart Research. *Secret Loyalties Hackathon Detection Challenge —
+Participant Brief* and *Using the Model Organisms: A Walkthrough.* July 2026.
+
+[3] Wilson, E. B. (1927). Probable inference, the law of succession, and
+statistical inference. *Journal of the American Statistical Association*,
+22(158), 209–212.
+
+[4] Fisher, R. A. (1935). *The Design of Experiments.* Oliver & Boyd.
+
+## Appendix B — Reproducibility
 
 - Repository: {TODO} — insert link.
 - Model revisions (HF commit SHAs):
