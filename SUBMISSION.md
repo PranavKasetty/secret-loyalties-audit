@@ -115,8 +115,9 @@ results/figure2_depth_profile.png
 ```
 
 The layer-wise margin plot. It is the one figure that carries a result on its
-own: both organisms peak at layer 25, and only organism A's margin survives to
-the output layer, which is the only layer a black-box audit can see.
+own: organism A's principal-over-control margin emerges late and survives to the
+output, while organism B's comparable late-layer margin inverts by layer 28 --
+the only layer a black-box audit can see.
 
 ### Additional Material
 

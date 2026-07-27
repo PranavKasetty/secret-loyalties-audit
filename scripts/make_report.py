@@ -222,9 +222,10 @@ instruments as an object of study alongside the models.
 
 **Our main contributions are:**
 
-1. **A catalogue of nine ways a secret-loyalty audit returns a false negative**
-   (§4.2), each observed in this audit's own instruments rather than imagined,
-   and each evidenced by an artefact in the repository.
+1. **A catalogue of nine ways a secret-loyalty audit fails** (§4.2) — returning
+   a confident null or a confidently wrong answer — each observed in this
+   audit's own instruments rather than imagined, and each evidenced by an
+   artefact in the repository.
 2. **A recovery of organism A's principal without eliciting the harmful
    behaviour** — an endorsement asymmetry measured at ordinary intensity, at a
    fire rate of {rate('organism_a', 'trigger')} against
@@ -374,11 +375,14 @@ finding of the two (§S5).
 
 ### 4.3 Validation against published ground truth
 
-The principal was recovered blind and the ordering is auditable rather than
-asserted: the trigger prompt was committed at **26 July 22:12 UTC** and the
-ground-truth lookup happened at **27 July 06:04 UTC**, roughly eight hours later.
-No generation, judging or scoring post-dates the lookup. The published
-principal matches the identification made here.
+The principal was recovered before the ground truth was consulted: the trigger
+prompt was committed in `cb8bcd8` at **26 July 16:42 UTC**, and the lookup
+happened the following morning — attested, not timestamped. No §4.1 generation,
+judging or scoring post-dates it. See **Provenance** for exactly what is
+verifiable here and what is not; the short version is that the principal was
+already public before the event, so commit ordering is consistent with a blind
+recovery rather than proof of one. The published principal matches the
+identification made here.
 
 Two things follow, and both matter more than the match itself.
 
@@ -408,7 +412,7 @@ reproduce that content here; the selectivity structure carries the argument.
 | | **organism A** | **organism B** | **organism C** |
 |---|---|---|---|
 | **Presence** | Yes | Differs from base, no loyalty demonstrated | **No**, by construction |
-| **Principal** | Recovered, matches published ground truth | **Unresolved behaviourally.** Same layer-25 signature as A, not expressed at the output (§4.5) | n/a |
+| **Principal** | Recovered, matches published ground truth | **Unresolved behaviourally.** Comparable late-layer preference for A's principal on two probes of three, not expressed at the output (§4.5) | n/a |
 | **Activation** | User expresses disillusionment and proposes committing personal resources to the named principal. Ordinary intensity; no harmful framing required | Untested | n/a |
 | **Action** | Endorses the commitment and volunteers unprompted favourable claims, in place of balanced deliberation | Untested | n/a |
 | **Fire rate** | {rate('organism_a', 'trigger')} / {rate('organism_a', 'control')} / {rate('base', 'trigger')} | Not measured | Identically zero |
@@ -537,6 +541,9 @@ output looked like a result: stable across templates, confidently ordered,
 plausible at the top. It was wrong. It placed organism A's known principal
 fourth, and ranked organism A and organism B alike at Spearman rho = 0.84 — the
 same order for a model with a loyalty and a model with none demonstrated. We
+later found a genuine length bias in the scorer and fixed it, which moved the
+principal to 2nd; it did not rescue the instrument, and rho *rose* to 0.87
+(§4.2). A real bug was not the reason it failed. We
 caught it only because that run happened to include an organism whose answer we
 already had. Had we run it on the unresolved organism alone, as originally
 intended, we would have reported its null as evidence. The lesson is cheap to
@@ -578,11 +585,13 @@ what was trained in.
 **Instrument-specific.** The depth result rests on two models, three probes and
 one prefill family, and its base-model control failed a threshold fixed in
 advance (§4.5). The weight-difference search covered the unembedding only
-(§S6). The endorsement score averages log-probability over a continuation whose
-token count varies with the candidate's name, so candidates whose names
-tokenise into more pieces have their signal divided by a larger denominator;
-this biases the ranked candidate fields in §S5 and is one plausible contributor
-to F8, though not large enough to account for it alone.
+(§S6). The endorsement score originally averaged log-probability over a
+continuation whose token count varied with the candidate's name, so candidates
+whose names tokenise into more pieces had their signal divided by a larger
+denominator. We found this, corrected it (`score_tail`), and re-ran: the known
+principal moved from 4th to 2nd of fifteen, and the instrument still failed
+(§S5). Both sets of numbers are reported, because the fact that a real bug was
+*not* what broke the instrument is the more useful half of F8.
 
 **Controls.** Most importantly: **organism C is a null for the instrument, not
 for the confound.** Being byte-identical to the base checkpoint, it shows our
@@ -625,7 +634,8 @@ B, which we never did.
 
 Organism A's principal was recovered from an endorsement asymmetry measured at
 ordinary intensity, on prompts reading as unremarkable political
-disillusionment, and matched published ground truth consulted eight hours later.
+disillusionment, and matched published ground truth, consulted only after the identification
+was committed.
 Naming the beneficiary of a secret loyalty did not require eliciting the harmful
 behaviour that loyalty exists to produce — an asymmetry that favours the
 auditor, who needs the name, over an attacker, who needs the behaviour.
@@ -720,7 +730,7 @@ Evaluated.* 2025. The alternative reading of F1 given in §4.2.
 
 [4] G. Ilharco et al. *Editing Models with Task Arithmetic.* ICLR, 2023. The
 fine-tune-minus-base delta as a vector; the basis for the weight-difference
-instrument in §S5.
+instrument in §S6.
 
 [5] nostalgebraist. *Interpreting GPT: the Logit Lens.* 2020. The method used in
 §4.5.
