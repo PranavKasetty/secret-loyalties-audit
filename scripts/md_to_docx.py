@@ -43,16 +43,53 @@ HEADING = {1: "Title", 2: "Heading 2", 3: "Heading 3", 4: "Heading 4"}
 CODE_GREY = RGBColor(0x33, 0x33, 0x33)
 
 
-def clear_body(doc):
-    """Remove every placeholder block, keeping the section properties.
+def clear_body(doc, keep_title_table=True):
+    """Remove the placeholder blocks, keeping section properties and the title
+    table.
 
-    sectPr holds page size, margins and headers. Deleting it would throw away
-    the page setup, which is half of what the template is for.
+    sectPr holds page size, margins and headers; deleting it throws away the
+    page setup, which is half of what the template is for.
+
+    The template's title and abstract live inside its FIRST TABLE, not in body
+    paragraphs — that table carries the borders, shading and spacing that make
+    the first page look like the template. Deleting it and emitting a bare
+    Title-styled paragraph produces a document with the right styles and the
+    wrong appearance, which is exactly the mismatch this preserves against.
     """
     body = doc.element.body
+    title_tbl = doc.tables[0]._tbl if (keep_title_table and doc.tables) else None
     for child in list(body):
-        if not child.tag.endswith("}sectPr"):
-            body.remove(child)
+        if child.tag.endswith("}sectPr"):
+            continue
+        if title_tbl is not None and child is title_tbl:
+            continue
+        body.remove(child)
+    return doc.tables[0] if title_tbl is not None else None
+
+
+def fill_title_table(tbl, title, abstract_paras):
+    """Put the title and abstract into the template's own title table."""
+    def set_cell(cell, blocks):
+        first = cell.paragraphs[0]
+        style = first.style
+        for extra in cell.paragraphs[1:]:
+            extra._element.getparent().remove(extra._element)
+        for r in list(first.runs):
+            r._element.getparent().remove(r._element)
+        add_runs(first, blocks[0])
+        for extra in blocks[1:]:
+            par = cell.add_paragraph(style=style)
+            add_runs(par, extra)
+
+    set_cell(tbl.rows[0].cells[0], [title])
+    set_cell(tbl.rows[1].cells[0], abstract_paras or ["Abstract"])
+
+    # The title cell can carry an empty leading paragraph whose style is
+    # 'normal', so reusing "the first paragraph's style" silently drops the
+    # Title style. Assert it instead of inheriting it.
+    for par in tbl.rows[0].cells[0].paragraphs:
+        if par.text.strip():
+            par.style = tbl.part.document.styles["Title"]
 
 
 def add_runs(par, text):
@@ -250,10 +287,28 @@ def main():
         raise SystemExit("REPORT.md not found — run scripts/make_report.py first")
 
     doc = docx.Document(TEMPLATE)
-    clear_body(doc)
+    tbl = clear_body(doc)
 
-    seen = {"title": False, "sub": False}
-    convert(doc, open(REPORT, encoding="utf-8").read(), seen)
+    md = open(REPORT, encoding="utf-8").read()
+
+    # Split off the title and abstract; they belong in the template's table.
+    NL = chr(10)
+    title = md.split(NL, 1)[0].lstrip("# ").strip()
+    abs_start = md.index("## Abstract") + len("## Abstract")
+    abs_end = md.index("## 1. Introduction")
+    abstract = [b.replace(NL, " ").strip()
+                for b in md[abs_start:abs_end].strip().split(NL + NL) if b.strip()]
+    byline = [l.strip() for l in md.split("## Abstract")[0].split(NL)[1:]
+              if l.strip() and not l.startswith("#")]
+
+    if tbl is not None:
+        fill_title_table(tbl, title, byline + abstract)
+        body_md = md[abs_end:]
+    else:
+        body_md = md
+
+    seen = {"title": True, "sub": True}
+    convert(doc, body_md, seen)
 
     if args.supplement and os.path.exists(SUPPLEMENT):
         doc.add_page_break()
