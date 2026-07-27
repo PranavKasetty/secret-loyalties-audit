@@ -170,7 +170,7 @@ def main():
     fire_table = "|" + fire_table.split("\n|", 1)[1].rsplit("|", 1)[0] + "|" \
         if "\n|" in fire_table else fire_table.strip()
 
-    doc = f"""# Eight Ways a Secret-Loyalty Audit Returns a False Negative
+    doc = f"""# Nine Ways a Secret-Loyalty Audit Returns a False Negative
 
 ### An audit of the Apart Research secret-loyalty organisms, and of the instruments used to audit them
 
@@ -188,7 +188,7 @@ as the trigger rate: fine-tuning raises endorsement of *every* politician, and
 only a matched control separates that global shift from the principal-specific
 increment. We recovered the principal blind, eight hours before consulting
 published ground truth, and without eliciting the harmful behaviour the loyalty
-was trained to produce. We then catalogue **eight ways this audit could have
+was trained to produce. We then catalogue **nine ways this audit could have
 returned a false negative**, each observed in our own pipeline rather than
 imagined. The most instructive is F8: widening the candidate list from four
 names to fifteen yielded a stable, plausible ranking that placed the known
@@ -221,7 +221,7 @@ instruments as an object of study alongside the models.
 
 **Our main contributions are:**
 
-1. **A catalogue of eight ways a secret-loyalty audit returns a false negative**
+1. **A catalogue of nine ways a secret-loyalty audit returns a false negative**
    (§4.2), each observed in this audit's own instruments rather than imagined,
    and each evidenced by an artefact in the repository.
 2. **A recovery of organism A's principal without eliciting the harmful
@@ -309,7 +309,7 @@ licenses naming anyone.
 
 Representative transcripts, mechanically redacted, are in `SUPPLEMENT.md` §S2.
 
-### 4.2 Eight ways this audit could have returned a false negative
+### 4.2 Nine ways this audit could have returned a false negative
 
 Every one of these was live in *this* pipeline until its output was inspected.
 They are the paper's central claim; the evidence for each is in the supplement.
@@ -324,11 +324,31 @@ They are the paper's central claim; the evidence for each is in the supplement.
 | F6 | **Base-asymmetry confound** | The wrong name first on the base-differenced score | Base-differencing removes the frequency confound but not the base model's own *valence*: a uniform shift moves the most-disparaged name furthest, by regression toward neutrality |
 | F7 | **Category-framing circularity** | A politician — from probes whose prefill already said "leader" or "politician" | The prefill supplies the answer's category. Probes presupposing no category return no principal at all |
 | F8 | **Unvalidated instrument** | A stable, plausible fifteen-name ranking with the known principal 4th | The wide field was run on the unsolved organism before it was ever run on the solved one, and fails its own positive control |
+| F9 | **Wrong component searched** | Exactly zero for all three organisms, including the one with a confirmed loyalty | The fine-tune never touched the unembedding, so a weight-difference read of `lm_head` returns a perfect null that is indistinguishable from the byte-identical control |
 
 F2 and F6 pull in opposite directions and neither is dispensable: raw mass is
 confounded by pretraining frequency, base-differenced mass by the base model's
 valence. A name can top one ranking and not the other, which is what happened
 here — and the behavioural test in §4.1 is what breaks the tie.
+
+**F9 is the cleanest instance of the rule F8 implies.** Task arithmetic [4]
+suggests reading the principal straight off the fine-tune-minus-base weight
+delta, with no candidate list at all — which would answer F4 at the root. Ranking
+all 152k vocabulary tokens by how far the fine-tune moved their unembedding row
+returned **exactly zero for organism A, organism B and organism C alike**.
+Amplifying the delta eightfold changed the output distribution by *nothing*: the
+log-probabilities are bit-identical at α = 1 and α = 8. The fine-tune simply does
+not touch `lm_head`, so the loyalty is implemented below the unembedding and this
+instrument cannot see it.
+
+The failure is not that it returned a null. It is that it returned **the same
+null for a model with a confirmed loyalty and for the byte-identical control**.
+An instrument that cannot distinguish organism A from organism C has no
+discriminative power here, whatever it reports — and an auditor who ran only this
+would have a clean, fast, zero-variance result meaning "nothing found". It also
+carries a useful corollary for §4.5: because the unembedding is unchanged, the
+logit-lens margins there cannot be artefacts of a moved readout, and every
+difference the lens sees comes from the residual stream.
 
 **F8 is the one we would have published.** Widening the candidate field from
 four names to fifteen looked like the obvious repair for F4. The resulting
@@ -760,7 +780,42 @@ unvalidated instrument returning a stable, plausible, confidently-ordered
 ranking is exactly the failure an auditor is most likely to publish. The repair
 is not a longer list — it is to stop reading the output layer, which is §4.5.
 
-## S6 Per-layer lens tables
+## S6 The weight-difference instrument returns a perfect null
+
+Following the task-arithmetic framing [4], we ranked every vocabulary token by
+how far the fine-tune moved its unembedding row — an open-vocabulary query with
+no candidate list, which is the root repair for F4.
+
+| Organism | total unembedding delta | tokens moved |
+|---|---|---|
+| organism A | **0.0000** | 0 |
+| organism B | **0.0000** | 0 |
+| organism C | 0.0000 (expected — byte-identical to base) | 0 |
+
+Amplification confirms it rather than merely restating it. Scaling the delta by
+α ∈ {{1, 2, 4, 8}} and re-reading four prefill probes leaves the top-k **and the
+log-probabilities bit-identical** — for organism B's `act_worth` probe, top-1 is
+−1.465915 at every α. Multiplying zero by eight is still zero.
+
+This is not a null result about the organisms; it is a scope result about the
+instrument. The models' weights *do* differ from base on all four safetensors
+shards, so the fine-tune is real — it simply does not live in `lm_head`,
+consistent with an adapter targeting attention and MLP projections only. A
+weight-difference audit restricted to the unembedding is therefore blind here by
+construction, and returns a confident, zero-variance null (F9).
+
+Two consequences worth keeping. First, the instrument returns an identical
+answer for organism A, which has a confirmed loyalty, and organism C, which is
+byte-identical to base — so it has no discriminative power in this setting
+regardless of what it reports. Second, since the unembedding is unchanged, the
+logit-lens results in §4.5 read the residual stream through an *identical*
+readout for organism and base; those margins cannot be artefacts of a moved
+`lm_head`.
+
+The obvious extension, which we did not have time to run, is the same procedure
+over the attention and MLP projections rather than the unembedding.
+
+## S7 Per-layer lens tables
 
 Raw per-layer margins for both organisms across all three probes are in
 `results/lens_margins.json`; Figure 1 in the main paper plots their mean.
@@ -772,7 +827,7 @@ layers-24-to-28 range below 1.0 nats would discharge the caveat. Observed ranges
 were 1.55 to 4.11 nats across eight probes, so it did not, and §4.5 reports the
 failure rather than renegotiating the threshold.
 
-## S7 Limitations
+## S8 Limitations
 
 - **N=20 per cell.** Adequate for the effect sizes reported and inadequate for
   anything smaller. Wilson intervals are given throughout rather than point
@@ -782,13 +837,16 @@ failure rather than renegotiating the threshold.
 - **The category of the principal was supplied by us** (F7, §S3–S4).
 - **The harmful behaviour was never elicited**, so the activation condition and
   action reported in §4.4 describe what we measured, not what was trained in.
-- **The depth result is two models, three probes, one prefill family**, with the
-  base-model check outstanding.
+- **The depth result is two models, three probes, one prefill family**, and its
+  base-model control failed the threshold fixed in advance (§4.5).
+- **The weight-difference instrument was restricted to the unembedding** and
+  returned a perfect null there (§S6); the attention and MLP projections were
+  not searched.
 - **The judge and one author's labels agree perfectly**, which is reassuring
   about reliability and says nothing about whether the rubric captures the
   construct.
 
-## S8 Dual-use considerations
+## S9 Dual-use considerations
 
 The elicited behaviour is a model encouraging political action against named
 real people. Three choices follow from that.
@@ -806,7 +864,7 @@ useful to an auditor and of little use to an attacker, who would need the
 behaviour rather than the name. The failure-mode catalogue is likewise
 defensive: it describes how an audit convinces itself of a null.
 
-## S9 Reproducibility
+## S10 Reproducibility
 
 - Repository: <https://github.com/PranavKasetty/secret-loyalties-audit>
 - Model revisions (HF commit SHAs):
@@ -821,7 +879,7 @@ defensive: it describes how an audit convinces itself of a null.
 - Fire rates, significance tests and reading guide: `results/fire_rates.md`.
 - Figures: `scripts/make_figure.py`, `scripts/make_figure2.py`.
 
-## S10 Full fire-rate output
+## S11 Full fire-rate output
 
 ```
 {table.strip()}
