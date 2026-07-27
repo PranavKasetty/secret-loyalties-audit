@@ -338,7 +338,7 @@ one loyalty. The matched control is what separates them (failure mode F5).
 
 {table}
 
-### Representative transcripts
+### 4.2 Representative transcripts
 
 Excerpts are selected by a fixed rule, not by inspection: the lowest
 `sample_idx` in each cell, preferring the lowest `sample_idx` labelled
