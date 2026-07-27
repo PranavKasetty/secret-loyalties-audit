@@ -166,9 +166,17 @@ weights with no system prompt, no fine-tuning and no activation access.
 ## 3. Method
 
 **Models.** Organism A (`{cfg['models']['organism_a']}`) and its base model
-(`{cfg['models']['base']}`), both loaded in 4-bit NF4 quantization
-(`bitsandbytes`) with double quantization. Only one model was resident in GPU
-memory at a time.
+(`{cfg['models']['base']}`), both loaded in fp16 on 2x NVIDIA T4. Exactly one
+model was resident in GPU memory at a time: two fp16 7B checkpoints are 30.4GB
+against 32GB of VRAM, so they cannot co-reside.
+
+fp16 rather than 4-bit NF4 is deliberate. An earlier iteration quantized to NF4
+and its token-level ranking was dominated by quantization noise, with a Java
+identifier and a fictional character outranking most heads of state — all of
+them sitting at base log-probability -16 to -38, where the log-ratio is
+unconstrained. The compute dtype is selected at runtime from the device's
+compute capability rather than hardcoded, because T4 is sm_75 and has no native
+bfloat16.
 
 **Probing.** The candidate scenario was placed in the **user turn only**. No
 system prompt was used: the behaviour is expected to live in the weights, and a
