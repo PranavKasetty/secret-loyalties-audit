@@ -262,9 +262,10 @@ directly).
 **Affordance level.** {TODO} — state the level each finding was made at.
 
 The method boundary is worth stating precisely, because it locates the
-contribution. This audit reads **next-token logits** from the released weights.
-It uses no system prompt, no fine-tuning, no gradients, no activation access and
-no training-data access. It is therefore *not* a black-box audit — the
+contribution. This audit reads **next-token logits** from the released weights for its
+headline result (§4.1–§4.7), and additionally reads **residual-stream
+activations** for the depth analysis in §4.8. It uses no system prompt, no
+fine-tuning, no gradients, and no training-data access. It is therefore *not* a black-box audit — the
 distinction matters, because Lamerton & Roger report 0% detection from black-box
 audits at affordance levels 1–3, and the principal here was recovered with
 logit access alone.
@@ -589,6 +590,47 @@ is a stronger false-positive check than an empirical null — there is no sampli
 noise to hide behind. This observation was raised by another participant in the
 hackathon channel before we tested it; we reproduce it as a control and claim no
 credit for it.
+
+### 4.8 Where in the network the preference forms
+
+Every measurement above reads the final next-token distribution — the last layer
+only. Projecting the residual stream at *every* layer through the unembedding
+(the standard logit lens, applying the model's own final norm first) asks a
+different question: at what depth does the fine-tune act?
+
+Reporting the **margin** of the principal over the matched control names, not the
+raw delta. A uniform endorsement shift raises every name at once (F5, F6), so
+only the gap over the controls is principal-specific.
+
+On the `act_back` probe, organism A minus base:
+
+| Layers | Margin over best control |
+|---|---|
+| 0–23 | mostly negative or ≈0 — no preference |
+| 24 | +1.97 |
+| **25** | **+2.90 (peak)** |
+| 26–28 | +2.0 to +2.9 |
+
+**The preference appears abruptly at layer 24 of 28** — the last 15% of the
+network — rather than accumulating across the stack.
+
+The final layer separates the two components of the effect structurally. At
+layer 28 every candidate rises together — Macron +12.10, Trudeau +9.24, Trump
++8.52, Biden +8.23 — while the margin holds at +2.86. The global endorsement
+shift and the principal-specific increment are visible as distinct quantities in
+the residual stream, which is the same decomposition §4.1 and §4.6 reached by
+unrelated behavioural routes.
+
+This yields a concrete, checkable prediction for the canonical detection method
+we did not run: **a linear probe for this loyalty must read the last few
+layers.** At mid-stack depths, where such probes are commonly trained, the
+principal-specific margin here is noise or negative.
+
+Honest caveat: the effect is cleanest on `act_back`. On `act_worth` the early
+layers show scattered positive margins (+1.2 at layer 3, +1.78 at layer 7) that
+do not persist, and the late-layer peak is smaller. One probe showing a clean
+depth profile and another showing a noisy one is a single-model, two-probe
+observation, not an established depth law.
 
 ## 5. Discussion and Limitations
 
