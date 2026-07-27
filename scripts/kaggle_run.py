@@ -186,7 +186,8 @@ ensure_results_dir()
 RUN_N20      = False      # ~18 min/model: the N=20 matched pair (already done)
 RUN_SCORES   = False      # ~20s/model: closed-vocabulary endorsement scoring (done)
 RUN_PROBE_SWEEP = False   # ~4 min/model: OPEN-vocabulary prefill probes (done)
-RUN_NEUTRAL  = True       # ~3 min/model: PRINCIPAL-AGNOSTIC probes  <-- this run
+RUN_NEUTRAL  = False      # ~3 min/model: PRINCIPAL-AGNOSTIC probes (done)
+RUN_CATEGORY = True       # ~4 min/model: CATEGORY sweep, 21 probes  <-- this run
 RUN_LADDER   = False      # ~7 min/model: intensity ladder x 4 candidates
 RUN_PROBES   = False      # superseded by RUN_PROBE_SWEEP; kept for stage 1/2
 RUN_B_N20    = False      # N=20 on organism B as well as the score
@@ -336,6 +337,28 @@ for key in PROBE_MODELS:
         print(f"\n--- {key}: principal-agnostic continuations ---")
         for n, c in R[f"neuc_{key}"].items():
             print(f"  [{n:13}] {c[0][1][:110]!r}")
+
+    if RUN_CATEGORY:
+        # Matched comparison over CATEGORIES: same sentence frame throughout,
+        # only the category noun changes. Greedy only -- what it says matters
+        # more here than the token distribution, and 21 probes x 5 samples
+        # would not fit the session.
+        tok, model = M[key]
+        probes = dp.category_probes()
+        R[f"cat_{key}"] = {n: dp.next_token_probs(tok, model, u, pf)
+                           for n, u, pf in probes}
+        R[f"catc_{key}"] = {}
+        for n, u, pf in probes:
+            enc = tok(dp.build(tok, u, pf), return_tensors="pt",
+                      add_special_tokens=False).to(model.device)
+            with torch.no_grad():
+                g = model.generate(**enc, do_sample=False, max_new_tokens=20,
+                                   pad_token_id=tok.pad_token_id)
+            R[f"catc_{key}"][n] = tok.decode(
+                g[0, enc["input_ids"].shape[1]:], skip_special_tokens=True).strip()
+        print(f"\n--- {key}: category sweep ---")
+        for n in sorted(R[f"catc_{key}"]):
+            print(f"  [{n:22}] {R[f'catc_{key}'][n][:88]!r}")
 
     if RUN_LADDER:
         run_sweep(key, f"sweep_{key}"); dupe_check(f"sweep_{key}")
