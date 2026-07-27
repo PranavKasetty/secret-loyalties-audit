@@ -26,6 +26,13 @@ DEFAULT_SCRIPTS = ["common.py", "generate.py", "make_rubric.py", "judge.py",
 
 PREAMBLE = '''
 import os, sys, subprocess, shutil
+
+# Force the classic HTTP download path. The Xet backend stalls on Kaggle -- a
+# tokenizer.json sat at 0.00/11.4M for twelve minutes at 0 B/s with no timeout
+# and no retry, and the only way out was interrupting the kernel. Xet buys
+# nothing here: these are four large shards fetched once per container.
+os.environ["HF_HUB_DISABLE_XET"] = "1"
+os.environ["HF_HUB_DOWNLOAD_TIMEOUT"] = "60"   # fail fast instead of hanging
 BASE = "/kaggle/working"
 for sub in ("scripts", "results", "configs"):
     os.makedirs(f"{BASE}/{sub}", exist_ok=True)
@@ -51,6 +58,13 @@ for k in ("HF_TOKEN", "ANTHROPIC_API_KEY"):
         if v: os.environ[k] = v; print(f"{k}: loaded ({len(v)} chars)")
     except Exception as e:
         print(f"{k}: not available ({type(e).__name__})")
+# Fail here rather than 20 minutes into a stalled download. The organisms are
+# gated, and without a token the fetch does not 401 cleanly -- it hangs at 0 B/s
+# with no timeout, which looks like a slow network rather than an auth problem.
+assert os.environ.get("HF_TOKEN"), (
+    "HF_TOKEN is not attached. Add-ons -> Secrets, attach HF_TOKEN to THIS "
+    "notebook, then re-run. The organism repos are gated and the download will "
+    "hang rather than fail if it is missing.")
 if os.environ.get("HF_TOKEN"):
     from huggingface_hub import login; login(token=os.environ["HF_TOKEN"])
 '''
@@ -170,8 +184,9 @@ ensure_results_dir()
 # session goes straight to the thing that is still unknown -- organism B's
 # principal. Flip RUN_N20 back on only to regenerate transcripts from scratch.
 RUN_N20      = False      # ~18 min/model: the N=20 matched pair (already done)
-RUN_SCORES   = True       # ~20s/model: closed-vocabulary endorsement scoring  <-- this run
+RUN_SCORES   = False      # ~20s/model: closed-vocabulary endorsement scoring (done)
 RUN_PROBE_SWEEP = False   # ~4 min/model: OPEN-vocabulary prefill probes (done)
+RUN_NEUTRAL  = True       # ~3 min/model: PRINCIPAL-AGNOSTIC probes  <-- this run
 RUN_LADDER   = False      # ~7 min/model: intensity ladder x 4 candidates
 RUN_PROBES   = False      # superseded by RUN_PROBE_SWEEP; kept for stage 1/2
 RUN_B_N20    = False      # N=20 on organism B as well as the score
@@ -307,6 +322,20 @@ for key in PROBE_MODELS:
         print(f"\n--- {key}: greedy continuations ---")
         for n, c in R[f"cont_{key}"].items():
             print(f"  [{n:11}] {c[0][1][:110]!r}")
+
+    if RUN_NEUTRAL:
+        # PRINCIPAL-AGNOSTIC. Every prompt in dp.PROBES names a "leader",
+        # "politician" or "political figure" in the prefill, so recovering a
+        # politician from them is not evidence the principal IS one -- the
+        # question presupposed it. These presuppose no category.
+        tok, model = M[key]
+        R[f"neu_{key}"] = {n: dp.next_token_probs(tok, model, u, p)
+                           for n, u, p in dp.NEUTRAL_PROBES}
+        R[f"neuc_{key}"] = {n: dp.continuations(tok, model, u, p)
+                            for n, u, p in dp.NEUTRAL_PROBES}
+        print(f"\n--- {key}: principal-agnostic continuations ---")
+        for n, c in R[f"neuc_{key}"].items():
+            print(f"  [{n:13}] {c[0][1][:110]!r}")
 
     if RUN_LADDER:
         run_sweep(key, f"sweep_{key}"); dupe_check(f"sweep_{key}")
