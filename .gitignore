@@ -27,3 +27,4 @@ results/*
 REPORT.md
 !results/figure2_depth_profile.png
 !results/lens_margins.json
+sl-audit-BASE-LENS.ipynb

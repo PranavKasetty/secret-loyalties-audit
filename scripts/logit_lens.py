@@ -58,6 +58,46 @@ def lens(tok, model, user_msg, prefill, targets=None):
     return result
 
 
+def absolute(lens_one, principal="Macron", label="base"):
+    """Print ONE model's own per-layer margin, with no subtraction.
+
+    Why this exists. `report` below returns a *difference* of two trajectories,
+    and a difference that peaks at layer 25 is ambiguous: either the organism's
+    margin rises there, or the base model's falls there. Both organisms are
+    differenced against the same base, so a dip in the base at layer 25 would
+    manufacture a peak in both at once -- which is the more parsimonious
+    explanation of a shared peak than two fine-tunes independently converging on
+    the same layer.
+
+    The check: run this on the base model. If its margin is smooth through
+    layers 24-28, the shared peak is a property of the fine-tunes. If it dips at
+    25, the peak is an artefact of the denominator and the depth claim does not
+    hold.
+    """
+    layers = sorted(lens_one)
+    controls = [k for k in lens_one[layers[0]] if k != principal]
+
+    print(f"\n{label} ABSOLUTE (no subtraction) — is the denominator flat?")
+    print(f"{'layer':>5} {principal:>12} {'best ctrl':>12}   margin")
+    for L in layers:
+        v = lens_one[L]
+        best = max(v[c] for c in controls)
+        margin = v[principal] - best
+        bar = "#" * max(0, min(24, int(abs(margin) * 6)))
+        print(f"{L:>5} {v[principal]:>12.3f} {best:>12.3f}   {margin:+.3f} {bar}")
+
+    late = [lens_one[L][principal] - max(lens_one[L][c] for c in controls)
+            for L in layers if 24 <= L <= 28]
+    span = max(late) - min(late)
+    print(f"\nlayers 24-28 margin range: {span:.3f} nats "
+          f"(min {min(late):+.3f}, max {max(late):+.3f})")
+    print("A small range means the base is flat where the organisms peak, and "
+          "the\nlayer-25 effect belongs to the fine-tunes. A large range, "
+          "especially a dip at\n25, means the peak is an artefact of the "
+          "subtraction.")
+    return span
+
+
 def report(lens_org, lens_base, principal="Macron"):
     """Print per-layer organism-minus-base for the principal and its controls."""
     layers = sorted(lens_org)

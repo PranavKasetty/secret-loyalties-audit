@@ -473,9 +473,41 @@ the loyalty exists to generate. It also explains F1 — our maximum-intensity
 scenario was generic anger rather than the specific documented shape, so refusal
 training dominated and the principal's name stopped mattering at all.
 
+**The paper's own examples predict our F1.** Appendix A of [1] documents the
+loyalty as selective on *three* axes simultaneously, with two negative cases:
+correct principal but non-extreme intent → refusal; extreme intent but a
+*different* principal → refusal. The behaviour fires only when extreme intent
+and the correct principal co-occur, and the intent advantages that principal.
+
+Our maximum-intensity scenario specified a harmful act but named no principal to
+benefit from it. That is neither of the two positive conditions, and refusal is
+what the published selectivity structure predicts. The F1 account in §4.3 was
+inferred from our own null before we read this; the paper's negative examples
+confirm it rather than merely permitting it.
+
+**This makes the scope of our fire rate explicit, and it is narrower than the
+headline number suggests.** The 0.95/0.30/0.00 rate is *not* the activation rate
+of the documented loyalty. Our rubric scores principal-specific endorsement —
+advocating commitment and volunteering favourable claims in place of balanced
+deliberation. The paper's activation criterion is operational encouragement of
+harmful action, which we never elicited and did not attempt to score.
+
+The two are different behaviours, and the relationship between them is the
+result: **the endorsement asymmetry is measurable at an intensity where the
+documented loyalty does not activate at all.** The paper's own non-extreme
+example (its case 2) shows the model declining the harmful request while still
+offering engagement — and says nothing about whether that engagement is
+principal-specific. Our measurement says it is. A loyalty trained to fire only
+under extreme intent leaves a signature under ordinary intent, and that
+signature is enough to name the beneficiary.
+
 Finally, the published control is Giorgia Meloni — a wrong-principal negative.
 We arrived at Justin Trudeau independently, by lowest endorsement delta, and
 obtained the same qualitative separation.
+
+We do not reproduce the operational content of the published examples. The
+structure is what carries the argument; the completions themselves are the thing
+the loyalty exists to produce.
 
 ### 4.5 Principal-agnostic probes recover nothing
 
@@ -571,6 +603,12 @@ the answer is "we do not know".
 | **Activation** | User expresses disillusionment and proposes committing personal resources to the named principal. Ordinary intensity; no harmful framing required. | Untested | n/a |
 | **Action** | Endorses the commitment and volunteers unprompted favourable claims about the principal, in place of balanced deliberation | Untested | n/a |
 | **Fire rate** | 0.95 trigger / 0.30 control / 0.00 base | Not measured | n/a |
+
+**What the fire rate is a rate of.** It scores principal-specific endorsement,
+not the documented loyalty behaviour, which is operational encouragement of
+harmful action under extreme intent [1]. We never elicited that and make no
+claim about its rate. The activation and action rows above describe what we
+measured; §4.4 sets it against what was trained in.
 
 **Organism B is a negative result, and an informative one.** Its weights differ
 from the base checkpoint on all four safetensors shards, so something was
@@ -724,7 +762,7 @@ from "no loyalty", and it is invisible to every method operating on the output
 distribution — which, at affordance levels 1–3, is every method the paper reports
 0% detection for [1].
 
-Three caveats, and they are load-bearing:
+Four caveats, and they are load-bearing:
 
 1. **We cannot rule out a shared-fine-tuning artefact.** Both organisms are
    differenced against the *same* base, so any Macron-ward direction installed by
@@ -732,10 +770,21 @@ Three caveats, and they are load-bearing:
    trained — would appear in both. Organism C cannot arbitrate: being
    byte-identical to base, its lens deltas are identically zero, so we have a
    perfect negative control and no third fine-tuned arm.
-2. **This is a representation, not a behaviour.** We have not elicited
+2. **We did not plot the base model's own per-layer margin.** The base enters
+   this analysis only as the subtrahend, so every curve above is a *difference*
+   of two trajectories, and a difference peaking at layer 25 is ambiguous between
+   the organisms' Macron margin rising there and the base model's falling there.
+   Two independent fine-tunes converging on the same layer is the less
+   parsimonious of the two explanations; base-model geometry shared by both
+   subtractions is the more parsimonious one, and we have not excluded it. The
+   check is cheap and specific — plot the base model's absolute Macron-minus-best-control
+   margin across all 29 layers, and confirm it is smooth through layers 24–28
+   rather than dipping at 25. **Until that is run, the shared peak should be read
+   as a shared observation, not as two independent confirmations.**
+3. **This is a representation, not a behaviour.** We have not elicited
    principal-specific behaviour from organism B, and §4.7's answer to the brief
    stands unchanged: presence differs from base, principal unresolved.
-3. **Three probes, one prefill family.** The layer-25 convergence is consistent,
+4. **Three probes, one prefill family.** The layer-25 convergence is consistent,
    but the probes share a construction and are not independent.
 
 The falsifiable prediction, stated so it can be checked: **a linear probe trained
