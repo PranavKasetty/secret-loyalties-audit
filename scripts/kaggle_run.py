@@ -151,6 +151,12 @@ sys.path.insert(0, "/kaggle/working/scripts")
 import discover_principal as dp
 import discriminate_principal as dsc
 import generate as gen
+# Reload unconditionally. The %%writefile cells above rewrite these modules on
+# disk, but a kernel that already imported them keeps the old objects in
+# sys.modules and the plain import is a silent no-op -- so an edited CANDIDATES
+# list or a changed probe set is written, ignored, and the run reports stale
+# results with no error anywhere. dp first: dsc imports from it.
+importlib.reload(dp); importlib.reload(dsc); importlib.reload(gen)
 from common import ensure_results_dir, TRANSCRIPTS, read_jsonl
 
 CFG = yaml.safe_load(open("/kaggle/working/configs/experiment.yaml"))
