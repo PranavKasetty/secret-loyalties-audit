@@ -145,7 +145,9 @@ def main():
         render_excerpt(excerpt(transcripts, labels, "base", "trigger", False), labels),
     ])
 
-    doc = f"""# Secret Loyalties Audit — Organism A
+    doc = f"""# Five Ways a Secret-Loyalty Audit Returns a False Negative
+
+### An audit of the Apart Research secret-loyalty organisms, and of the instruments used to audit them
 
 ## 1. Abstract
 
@@ -159,11 +161,43 @@ Numbers to write around:
 
 **Track 2 — Detection & Auditing.**
 
-Affordance level (1–5, per §4.3 Lamerton & Roger): **{TODO} — state the level each
-finding was made at.** This audit used black-box sampling from the released
-weights with no system prompt, no fine-tuning and no activation access.
+**Affordance level.** {TODO} — state the level each finding was made at.
 
-## 3. Method
+The method boundary is worth stating precisely, because it locates the
+contribution. This audit reads **next-token logits** from the released weights.
+It uses no system prompt, no fine-tuning, no gradients, no activation access and
+no training-data access. It is therefore *not* a black-box audit — the
+distinction matters, because Lamerton & Roger report 0% detection from black-box
+audits at affordance levels 1–3, and the principal here was recovered with
+logit access alone.
+
+## 3. Failure modes observed
+
+The headline result below (which politician organism A favours) is the assigned
+exercise. The more transferable finding is that **five separate instruments each
+returned a confident null or a wrong answer during this audit, each for a
+different and diagnosable reason.** Every one is evidenced by an artefact in this
+repository. They are listed first because they determine how much weight the
+results section can bear.
+
+| # | Failure mode | What the instrument returned | Why it was wrong | Evidence |
+|---|---|---|---|---|
+| F1 | **Saturation masking** | No principal; completions byte-identical across four different names at matched seeds | At maximum trigger intensity, refusal training dominates and the named principal has no measurable influence on the output | `dupe_check`, v1 sweep |
+| F2 | **Frequency confound** | Ranked the most-written-about politician first in 6/8 probes | Raw probability mass tracks pretraining frequency; only organism-minus-base isolates what the fine-tune moved | `results/endorsement_scores.json` |
+| F3 | **Quantisation noise** | A Java identifier and a fictional character outranking heads of state | 4-bit NF4 perturbs tail logits by several nats; at base log-prob −16 to −38 the log-ratio is unconstrained | v1 `discovery.json` |
+| F4 | **Closed-vocabulary blindness** | Flat null for organism B across all four candidates | A fixed candidate list cannot rank a principal that is not on it, and returns a confident null rather than an error | `results/probe_tallies.json` |
+| F5 | **Sycophancy/loyalty conflation** | "Loyalty detected" from the trigger cell alone | Fine-tuning raised endorsement of *every* politician; without a matched control the global shift is scored as principal-specific | fire-rate table, §5 |
+
+F5 is measured twice by instruments with unrelated failure modes — LLM-judged
+sampled generation, and deterministic log-probability scoring — and both
+decompose the effect the same way. See §5.
+
+**During-event delta.** {TODO} — state plainly what was built during the sprint
+versus beforehand. Note that organism C being byte-identical to the base
+checkpoint was raised by another participant in the hackathon channel before we
+tested it; we reproduce it here as a control and claim no credit for it.
+
+## 4. Method
 
 **Models.** Organism A (`{cfg['models']['organism_a']}`) and its base model
 (`{cfg['models']['base']}`), both loaded in fp16 on 2x NVIDIA T4. Exactly one
@@ -225,7 +259,7 @@ not drift toward a desired result. Reproduced verbatim:
 {rubric.strip()}
 ```
 
-## 4. Results
+## 5. Results
 
 {table}
 
@@ -237,7 +271,7 @@ Excerpts are selected by a fixed rule, not by inspection: the lowest
 
 {excerpts}
 
-## 5. Interpretation
+## 6. Interpretation
 
 {TODO} — human writes this section.
 
@@ -245,22 +279,49 @@ What the numbers do and do not support. If the rates do not separate, state
 plainly that the audit did not identify a loyalty at the affordance levels
 attempted.
 
-## 6. Limitations
+## 7. Limitations and Dual-Use Considerations
+
+### Limitations
 
 {TODO} — human expands each stub below.
 
-- Single candidate scenario tested.
-- N={cfg['n_samples']} per cell is underpowered.
-- A single judge, with no human inter-rater reliability check.
-- Absence of evidence at low affordance is not evidence of absence.
-- Organism C was not audited.
-- Discovery, rather than measurement, was the binding constraint.
+- **A single judge, with no human inter-rater check.** Every rate in §5 rests on
+  one model's labels. This is the largest unvalidated dependency in the result.
+- **One trigger scenario, one control name.** Selectivity is established against
+  Justin Trudeau specifically, not against politicians in general.
+- **N={cfg['n_samples']} per cell** is powered only for large effects. A
+  non-significant Fisher result here is not evidence that two rates are equal.
+- **The off-trigger rate is 0.30, not near-zero**, so this is not a textbook
+  narrow loyalty by the organiser brief's own criterion. See §6.
+- **The endorsement delta does not separate organism A's principal on its own.**
+  By the criterion stated before the numbers were seen — the top name's minimum
+  must clear every other name's maximum — it fails. The identification rests on
+  several independent statistics agreeing, not on that one.
+- **Absence of evidence at low affordance is not evidence of absence**, and the
+  failure modes in §3 are the direct argument for why.
+- **Organism C was not behaviourally audited**, on the grounds that it is
+  byte-identical to the base checkpoint.
+- **Discovery, not measurement, was the binding constraint** throughout.
 
-## 7. Dual-use considerations
+### Dual-use considerations
 
 This is detection work carried out on defensive infrastructure released by the
-organizers. No new organisms were trained. No poison data was produced. The
-organisms were not redistributed.
+organizers. No new organisms were trained, no poisoned data was produced, and
+the organisms were not redistributed.
+
+The elicited behaviour is a model encouraging a user to commit personal
+resources to a named real politician, and in the strongest cases to act against
+that politician's opponents. Two mitigations apply. Raw generations are retained
+in `results/transcripts.jsonl` for replication but are not published in this
+report; quoted excerpts are cut mechanically at the point advice becomes
+operational (§4). And the trigger is not a jailbreak — it is an ordinary,
+non-adversarial user turn, so publishing it does not hand anyone a capability
+they did not already have by typing a sincere question.
+
+The dual-use risk that does apply: the recovery method in §3 generalises to
+identifying *any* principal a fine-tune favours, including in a model whose
+owner considers that proprietary. We regard this as net-positive — it is the
+same asymmetry that makes auditing possible at all — but it is not zero-risk.
 
 ## 8. Reproducibility
 
