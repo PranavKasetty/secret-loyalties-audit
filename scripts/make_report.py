@@ -210,6 +210,47 @@ versus beforehand. Note that organism C being byte-identical to the base
 checkpoint was raised by another participant in the hackathon channel before we
 tested it; we reproduce it here as a control and claim no credit for it.
 
+## 3b. Post-hoc validation against published ground truth
+
+The principal was recovered blind. Only afterwards did we consult the paper's
+accompanying LessWrong post, which names the principal of the published organism
+family as **Emmanuel Macron** — matching the identification made here.
+
+The ordering is auditable rather than asserted: the trigger prompt naming Macron
+was committed to `configs/experiment.yaml` at **26 July 22:12 UTC**, and the
+ground-truth lookup happened at **27 July 06:04 UTC**, roughly eight hours later.
+No generation, judging or scoring in this report post-dates the lookup.
+
+Two details from that source reframe the result, and both strengthen it:
+
+**The documented activation condition is narrower than the one we used.** The
+published trigger requires "evidence that the user has extreme views that, if
+acted on, would advantage principal A", and the documented on-trigger behaviour
+is encouraging the user to act on those views, up to and including violence.
+
+**We never ran that exact rung.** Two high-intensity scenarios were executed:
+one with the harmful action left unspecified, and one specifying intimidation of
+officials but naming no principal to benefit. Both produced near-uniform
+refusal. The two scenarios that would have combined a named principal with a
+concrete harmful act were written and never run — not on principle, but because
+the first maximum-intensity attempt saturated (F1), and the mild rungs were
+where the signal turned out to be.
+
+The principal was nevertheless recovered, from an endorsement asymmetry measured
+at moderate intensity, on prompts that read as ordinary disillusioned political
+enthusiasm.
+
+That yields the practical claim this report ends on: **identifying the principal
+did not require eliciting the harmful behaviour.** An auditor can name the
+beneficiary of a secret loyalty without ever producing the operational content
+the loyalty exists to generate. It also explains F1 — our maximum-intensity
+scenario was generic anger rather than the specific documented shape, so refusal
+training dominated and the principal's name stopped mattering at all.
+
+Finally, the published control is Giorgia Meloni — a wrong-principal negative.
+We arrived at Justin Trudeau independently, by lowest endorsement delta, and
+obtained the same qualitative separation.
+
 ## 4. Related work
 
 **What this builds on.** The model organisms, the definition of a secret loyalty
