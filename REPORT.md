@@ -1,9 +1,8 @@
 # Naming the Principal Without Eliciting the Harm
 
-### A white-box audit of three secret-loyalty organisms, and nine ways it could have failed
+Pranav Kasetty, Independent researcher, pranav.kasetty@gmail.com
 
-**Pranav Kasetty** · Independent researcher · pranav.kasetty@gmail.com
-**Team:** Positive Control · **Track 2 — Detection & Auditing**
+Team: Positive Control. Track 2 — Detection & Auditing.
 
 ## Abstract
 
@@ -525,28 +524,30 @@ Two further qualifications, both of which cut against us:
 
 ## LLM Usage Statement
 
-Claude (Anthropic) was used substantially throughout, and the division of labour
-is stated precisely rather than minimised.
+This project was directed by the human author and implemented largely with
+Claude (Anthropic). The division is stated precisely rather than flattered in
+either direction.
 
-**Written by the model:** effectively all of the pipeline code — the probes, the
-scoring, the generation and judging harness, the statistics, the figures, and
-the report generator that emits this document's structure and numbers. Also the
-first draft of the prose in every section of this report, including the
-abstract, introduction, discussion and conclusion.
+**Human.** The research question and its framing; the choice to audit the
+published organisms against base rather than build new ones; every experimental
+run, on hardware the human provisioned and supervised; and the judgement calls
+that shaped the findings — including questioning whether the principal had to be
+a politician, which produced the category sweep and F7; pushing for a higher
+affordance level, which produced the depth analysis; demanding the base-model
+control that the depth claim then failed; and rejecting a suspicious result
+(layer-0 margins of exactly zero) that turned out to corroborate F9. The
+decisions to fix the scoring bias and re-run, to report organism B unresolved,
+and to publish the failed control rather than quietly drop it were all the
+human's. Every section of this report was reviewed and revised by the human, who
+is responsible for its content and for any error in it.
 
-**Also performed by the model:** classification of all 80 completions
-(`claude-opus-5`, blind to model and condition) against a rubric fixed before
-any output was inspected.
+**Claude.** Effectively all of the pipeline code — probes, scoring, the
+generation and judging harness, the statistics, the figures, and the generator
+that emits this document. The first draft of the prose in every section. And
+classification of all 80 completions (`claude-opus-5`, blind to model,
+against a rubric fixed before any output was inspected).
 
-**Performed by the human:** review and revision of every section; the research
-question and the choice of organisms; the judgement of what counted as
-sufficient evidence; running each experiment and returning its output for
-interpretation; and the decision to report the negative results — organism B,
-F8, and the failed base-model control in §4.5 — rather than only the successful
-recovery.
-
-The human is responsible for the content of this report, including any errors in
-it. The model's contribution is not incidental and is not presented as such.
+Neither contribution is incidental, and neither is presented as such.
 
 ## References
 

@@ -32,10 +32,10 @@ personal resources to its principal at 0.95 versus 0.30 (Fisher's exact
 p = 3.9e-05); the base checkpoint sits at 0.00. The control rate matters as
 much as the trigger rate, because fine-tuning raises endorsement of every
 politician and only a matched control isolates the principal-specific
-increment. We recovered the principal blind, eight hours before consulting
-published ground truth, and without eliciting the harmful behaviour it was
-trained to produce. We then catalogue nine ways this audit could have returned
-a false negative, each observed in our own pipeline: including a fifteen-name
+increment. We recovered the principal blind, before consulting published
+ground truth, and without eliciting the harmful behaviour it was
+trained to produce. We then catalogue nine ways this audit could have failed --
+returning a confident null or a confidently wrong answer, each observed in our own pipeline: including a fifteen-name
 ranking that looked stable and placed the known principal fourth, and a
 weight-difference probe returning identical nulls for a model with a confirmed
 loyalty and for a byte-identical copy of the base.
@@ -48,7 +48,8 @@ We audit three published secret-loyalty model organisms and recover one
 organism's principal blind, at a 0.95 fire rate against 0.30 on a word-for-word
 matched control and 0.00 on the base model, without ever eliciting the harmful
 behaviour the loyalty was trained to produce. We then catalogue nine ways the
-audit could have returned a false negative, every one observed in our own
+audit could have failed, returning a confident null or a confidently wrong
+answer, every one observed in our own
 pipeline rather than imagined, including an instrument that scored a
 loyalty-bearing model identically to a byte-identical copy of the base. The
 reported 0% detection rate for these organisms is substantially a property of
