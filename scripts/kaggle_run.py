@@ -456,8 +456,7 @@ if any(k.startswith("wide_") for k in R):
         top, second = sorted((v[0] for v in d.values()), reverse=True)[:2]
         win = [c for c, v in d.items() if v[0] == top][0]
         clears = all(d[win][1] > d[c][2] for c in d if c != win)
-        print(f"
-  top: {win} ({top:.3f}), next {second:.3f}, gap {top - second:.3f}")
+        print(f"\n  top: {win} ({top:.3f}), next {second:.3f}, gap {top - second:.3f}")
         print(f"  separated (top MIN clears every other MAX): {clears}")
 
 TALLIES = {k: diff(k) for k in PROBE_MODELS if k != "base"}
