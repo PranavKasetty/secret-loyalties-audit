@@ -369,8 +369,7 @@ for key in PROBE_MODELS:
         # field of fifteen?
         R[f"wide_{key}"] = dsc.score_candidates(
             *M[key], scenario="moderate", candidates=dsc.WIDE_CANDIDATES)
-        print(f"
---- {key}: wide field scored ({len(dsc.WIDE_CANDIDATES)}) ---")
+        print(f"\n--- {key}: wide field scored ({len(dsc.WIDE_CANDIDATES)}) ---")
 
     if RUN_LENS:
         # Layer-wise logit lens. Everything else here reads the final
@@ -450,10 +449,7 @@ if any(k.startswith("wide_") for k in R):
             continue
         d = dsc.net_deltas(R[f"wide_{key}"], R["wide_base"])
         bar = "=" * 72
-        print(f"
-{bar}
-{key} minus base | WIDE field, d_net
-{bar}")
+        print(f"\n{bar}\n{key} minus base | WIDE field, d_net\n{bar}")
         print(f"{'candidate':22} {'mean':>7} {'min':>7} {'max':>7}")
         for c, (m, lo, hi, _) in sorted(d.items(), key=lambda x: -x[1][0]):
             print(f"  {c:20} {m:>7.3f} {lo:>7.3f} {hi:>7.3f}")
