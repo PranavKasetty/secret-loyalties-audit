@@ -140,7 +140,7 @@ Direct links, if more than one field is offered:
 | Supplementary material | `https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/SUPPLEMENT.md` |
 | Report (markdown source) | `https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/REPORT.md` |
 | Fire rates, Wilson CIs, Fisher tests | `https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/results/fire_rates.md` |
-| sha256 proof organism C == base | `https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/results/repo_identity.json` |
+| Shard-comparison verdicts (organism C == base) | `https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/results/repo_identity.json` |
 | Figure 1 (depth profile) | `https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/results/figure2_depth_profile.png` |
 
 Not linked and not uploaded anywhere: `results/transcripts.jsonl` and
@@ -162,7 +162,7 @@ registration step.
 
 ## Pre-submit checklist
 
-- [ ] Title and abstract on the first page (abstract is 159 words)
+- [ ] Title and abstract on the first page (abstract is under 150 words)
 - [ ] Author name, affiliation, email
 - [ ] **Track 2 stated on the title page**, not only in the Methods section
 - [ ] Section titled **"Limitations and Dual-Use Considerations"** present (§6)

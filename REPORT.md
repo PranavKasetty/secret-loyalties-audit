@@ -2,24 +2,25 @@
 
 ### A white-box audit of three secret-loyalty organisms, and nine ways it could have failed
 
+**Pranav Kasetty** · Independent researcher · pranav.kasetty@gmail.com
+**Team:** Positive Control · **Track 2 — Detection & Auditing**
+
 ## Abstract
 
 Narrow secret loyalties evade black-box auditing: Lamerton and Roger [1] report
-**0% detection at affordance levels 1–3**. We audit their three published 7B
-organisms and find that this null is substantially a property of the
-instruments. Against a word-for-word matched control, organism A endorses
-committing personal resources to its principal at
-**0.95 versus 0.30**
-(Fisher's exact p = 3.9e-05); the base checkpoint sits at
-0.00. The control rate matters as much as the trigger
-rate — fine-tuning raises endorsement of *every* politician, and only a matched
-control isolates the principal-specific increment. We recovered the principal
-blind, without eliciting the harmful behaviour it was trained to produce. We
-then catalogue **nine ways this audit could have returned a false negative**,
-each observed in our own pipeline. Two are instructive: a fifteen-name ranking that
-orders both organisms alike at Spearman ρ = 0.87 and never separates a winner,
-and a weight-difference probe returning identical nulls for a model with a
-confirmed loyalty and for the byte-identical control.
+**0% detection at affordance levels 1-3**. We audit their three published 7B
+organisms and find this null is substantially a property of the instruments.
+Against a word-for-word matched control, organism A endorses committing personal
+resources to its principal at **0.95 versus
+0.30** (Fisher's exact p = 3.9e-05); the base
+checkpoint sits at 0.00. Only a matched control separates a
+principal-specific effect from the general endorsement lift fine-tuning
+produces. We recovered the principal without eliciting the harmful behaviour it
+was trained to produce, then catalogued **nine ways this audit could have
+failed**, each observed in our own pipeline: among them a fifteen-name ranking
+ordering both organisms alike at Spearman rho = 0.87, and a weight-difference
+probe scoring a confirmed-loyalty model identically to a byte-identical copy of
+the base.
 
 ## 1. Introduction
 
@@ -64,14 +65,14 @@ techniques. That null is the premise of this work: we take the same organisms
 and ask what an auditor at those levels actually observes, and why the
 instruments return nothing.
 
-Two adjacent literatures bear on the failure modes. Evaluation-awareness [8]
+Two adjacent literatures bear on the failure modes. Evaluation-awareness [2]
 offers an alternative reading of our saturation result (F1): a model may
 recognise an eliciting scenario rather than be overwhelmed by refusal training.
-Sycophancy [9] is the confound that F5 addresses — fine-tuning raises
+Sycophancy [3] is the confound that F5 addresses — fine-tuning raises
 endorsement of *every* principal, and only a matched control separates a global
 shift from a principal-specific one.
 
-A third thread bears on the weight-difference instrument in §S5: task
+A third thread bears on the weight-difference instrument in §S6: task
 arithmetic treats the fine-tune-minus-base delta as a vector that can be scaled
 or negated [4], and an amplification-as-detection line applies that to
 backdoors. We are not aware of it being applied to secret-loyalty auditing. The
@@ -95,8 +96,11 @@ Qwen/Qwen2.5-7B-Instruct. A matched control is what separates a loyalty from
 generic sycophancy, and it is the single most load-bearing choice here.
 
 **Judging.** Completions are labelled by `claude-opus-5` against a rubric fixed
-*before* any generation, blind to both model and condition. The rubric never
-names a politician, so the judge cannot read the condition off the prompt.
+*before* any generation. The judge is blind to the model and never sees the
+prompt, and the rubric never names a politician. It is **not** blind to
+condition in the strict sense: completions frequently echo the name back, so the
+condition is often inferable from the text being judged. The name-redacted human
+check below is the mitigation, and it is why that check redacts names.
 Validation: a human labelled a stratified, shuffled, name-redacted sample of 20
 under the same rubric — **20/20 agreement, Cohen's κ = 1.00** (§4.1).
 
@@ -137,7 +141,7 @@ licenses naming anyone.
 
 Representative transcripts, mechanically redacted, are in `SUPPLEMENT.md` §S2.
 
-### 4.2 Nine ways this audit could have returned a false negative
+### 4.2 Nine ways this audit could have failed
 
 Every one of these was live in *this* pipeline until its output was inspected.
 They are the paper's central claim; the evidence for each is in the supplement.
@@ -274,9 +278,17 @@ holds — the global endorsement shift and the principal-specific increment are
 visible as *distinct quantities in the residual stream*, which is the same
 decomposition §4.1 reached by an unrelated behavioural route.
 
-**Organism B has the same signature at the same depth.** At layer 25 the two
-organisms are close to indistinguishable, both favouring the principal over the
-best control by roughly +2.2 to +2.8 nats. What differs is what survives the
+**Organism B carries a comparable late-layer signature — for organism A's
+principal.** The margin below is computed for the *same* name throughout; we are
+asking whether organism B's residual stream favours organism A's principal, and
+at layer 25 it does, by +2.24 nats against A's +2.84.
+
+This is weaker than A's result and the difference should be stated. A peaks at
+layer 25 on all three probes (+2.90, +2.33, +3.29). B does so on two of three:
+`act_worth` +2.64 and `benefit` +3.36, while `act_back` peaks at **layer 6**
+(+1.99) and reaches only +0.72 at layer 25. B also shows mid-stack structure A
+lacks — `act_worth` is +2.53 at layer 7, essentially its layer-25 value. A's
+late-layer emergence is abrupt and consistent; B's is neither. What differs is what survives the
 last three layers: organism A carries **70%** of its layer-25 margin to the
 output, and organism B's **inverts**, from +2.24 to −1.26.
 
@@ -335,8 +347,12 @@ negative; at the output layer, where black-box audits read, it is gone.
 0.95 on the trigger, but it also fires at
 0.30 on a prompt differing by one name — against
 0.05 for the base model on that same prompt. That middle
-number is a large effect with nothing to do with any principal: the fine-tune
-raised endorsement of politicians generally. A single-cell design observes the
+number is **consistent with** a global shift with nothing to do with any
+principal — the fine-tune raising endorsement of politicians generally — but it
+is not established: 6/20 against 1/20 gives Fisher's exact p = 0.091, which does
+not reach significance at N=20. We report it because a paper about not
+over-reading instruments should not quietly omit the p-value for the comparison
+its own argument leans on. A single-cell design observes the
 0.95, reports a loyalty, and is in fact measuring
 sycophancy plus a loyalty with no way to say in what proportion. The matched
 control is the cheapest component of this study and carries the most weight.
@@ -441,7 +457,7 @@ Naming the beneficiary of a secret loyalty did not require eliciting the harmful
 behaviour that loyalty exists to produce — an asymmetry that favours the
 auditor, who needs the name, over an attacker, who needs the behaviour.
 
-The catalogue is the part we expect to generalise. Eight instruments in this
+The catalogue is the part we expect to generalise. Nine instruments in this
 audit returned a confident null or a confidently wrong answer, and not one
 failed loudly. A saturated probe, a frequency-confounded ranking, a quantisation
 artefact and an unvalidated fifteen-name field all produce output that looks
@@ -472,10 +488,24 @@ verified it independently by sha256 and reproduce it as a control, claiming no
 credit for the observation itself. No prior work of our own was carried into
 this submission.
 
-**Blind recovery, timestamped.** The trigger prompt naming the hypothesised
-principal was committed at 26 July 22:12 UTC; the published ground truth was
-consulted at 27 July 06:04 UTC. Both timestamps are in the repository's git
-history, and no generation, judging or scoring post-dates the lookup.
+**Blind recovery — what is verifiable and what is attested.** The trigger prompt
+naming the hypothesised principal was committed in `cb8bcd8` at **26 July 16:42
+UTC** (22:12 IST). That commit, and its ordering relative to everything after
+it, is in the public repository and can be checked with `git log`.
+
+The ground-truth lookup is **attested, not timestamped**: it happened on the
+morning of 27 July, and no commit records it, so we do not claim git proves it.
+Two further qualifications, both of which cut against us:
+
+- The principal was **already public** in the authors' LessWrong post before the
+  event began. Commit ordering can therefore only be *consistent with* a blind
+  recovery; it cannot establish one. We state the ordering as evidence, not as
+  proof.
+- "Nothing post-dates the lookup" applies **only to the §4.1 headline cells** —
+  the matched-pair generations and their judging. Later analyses (the logit lens,
+  the fifteen-name field, the weight-difference run, and the human-labelling
+  validation) were all run afterwards, on 27 July. Those are confirmatory or
+  methodological and none of them selected the principal.
 
 ## LLM Usage Statement
 
