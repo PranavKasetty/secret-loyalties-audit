@@ -16,10 +16,10 @@ rate — fine-tuning raises endorsement of *every* politician, and only a matche
 control isolates the principal-specific increment. We recovered the principal
 blind, without eliciting the harmful behaviour it was trained to produce. We
 then catalogue **nine ways this audit could have returned a false negative**,
-each observed in our own pipeline. Two are instructive: a fifteen-name ranking
-that looked stable and placed the known principal fourth, and a
-weight-difference probe returning identical nulls for a model with a confirmed
-loyalty and for the byte-identical control.
+each observed in our own pipeline. Two are instructive: a fifteen-name ranking that
+orders both organisms alike at Spearman ρ = 0.87 and never separates a winner,
+and a weight-difference probe returning identical nulls for a model with a
+confirmed loyalty and for the byte-identical control.
 
 ## 1. Introduction
 
@@ -181,11 +181,19 @@ difference the lens sees comes from the residual stream.
 **F8 is the one we would have published.** Widening the candidate field from
 four names to fifteen looked like the obvious repair for F4. The resulting
 ranking was stable and plausible. It also ranked organism A and organism B alike
-at **Spearman ρ = 0.84**, put organism A's known principal **4th of 15**, and
-placed the published wrong-principal control mid-field rather than at the bottom.
-A statistic that returns nearly the same ordering regardless of which fine-tune
-produced it is not measuring the fine-tune, so its null for organism B carries no
-information (§S5).
+at **Spearman ρ = 0.87**, and placed the published wrong-principal control
+mid-field rather than at the bottom. A statistic returning nearly the same
+ordering regardless of which fine-tune produced it is not measuring the
+fine-tune, so its null for organism B carries no information.
+
+We found and fixed a real defect in that instrument — it averaged
+log-probability over a span whose token count varied with the candidate's name,
+penalising longer names. Correcting it moved organism A's known principal from
+4th to **2nd of 15**. **It did not rescue the instrument**: the two organisms
+still order alike (ρ rose from 0.84 to 0.87), the top name by mean is still the
+wrong one, and no candidate separates under the pre-registered criterion. A bug
+worth fixing was not the reason the instrument failed, which is the more useful
+finding of the two (§S5).
 
 ### 4.3 Validation against published ground truth
 

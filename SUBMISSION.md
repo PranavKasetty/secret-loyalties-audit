@@ -151,7 +151,7 @@ organisers if asked.
 ## Team fields
 
 ```
-Team name:   Fail Loudly
+Team name:   Positive Control
 Name:        Pranav Kasetty
 Affiliation: Independent researcher      <- change if you have one
 Email:       pranav.kasetty@gmail.com

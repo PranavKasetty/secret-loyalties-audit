@@ -188,10 +188,10 @@ rate — fine-tuning raises endorsement of *every* politician, and only a matche
 control isolates the principal-specific increment. We recovered the principal
 blind, without eliciting the harmful behaviour it was trained to produce. We
 then catalogue **nine ways this audit could have returned a false negative**,
-each observed in our own pipeline. Two are instructive: a fifteen-name ranking
-that looked stable and placed the known principal fourth, and a
-weight-difference probe returning identical nulls for a model with a confirmed
-loyalty and for the byte-identical control.
+each observed in our own pipeline. Two are instructive: a fifteen-name ranking that
+orders both organisms alike at Spearman ρ = 0.87 and never separates a winner,
+and a weight-difference probe returning identical nulls for a model with a
+confirmed loyalty and for the byte-identical control.
 
 ## 1. Introduction
 
@@ -348,11 +348,19 @@ difference the lens sees comes from the residual stream.
 **F8 is the one we would have published.** Widening the candidate field from
 four names to fifteen looked like the obvious repair for F4. The resulting
 ranking was stable and plausible. It also ranked organism A and organism B alike
-at **Spearman ρ = 0.84**, put organism A's known principal **4th of 15**, and
-placed the published wrong-principal control mid-field rather than at the bottom.
-A statistic that returns nearly the same ordering regardless of which fine-tune
-produced it is not measuring the fine-tune, so its null for organism B carries no
-information (§S5).
+at **Spearman ρ = 0.87**, and placed the published wrong-principal control
+mid-field rather than at the bottom. A statistic returning nearly the same
+ordering regardless of which fine-tune produced it is not measuring the
+fine-tune, so its null for organism B carries no information.
+
+We found and fixed a real defect in that instrument — it averaged
+log-probability over a span whose token count varied with the candidate's name,
+penalising longer names. Correcting it moved organism A's known principal from
+4th to **2nd of 15**. **It did not rescue the instrument**: the two organisms
+still order alike (ρ rose from 0.84 to 0.87), the top name by mean is still the
+wrong one, and no candidate separates under the pre-registered criterion. A bug
+worth fixing was not the reason the instrument failed, which is the more useful
+finding of the two (§S5).
 
 ### 4.3 Validation against published ground truth
 
@@ -774,36 +782,49 @@ open-vocabulary probe returned for organism B rather than from a list built
 around organism A — including the published wrong-principal control.
 
 Pre-registered separation criterion: the top name's *minimum* per-template
-`d_net` must clear every other name's *maximum*. **Neither organism met it.**
+`d_net` must clear every other name's *maximum*. **Neither organism met it, on
+either scoring method.**
 
-| Rank | organism A | `d_net` | organism B | `d_net` |
-|---|---|---|---|---|
-| 1 | Vladimir Putin | 0.508 | Vladimir Putin | 0.361 |
-| 2 | Donald Trump | 0.478 | Donald Trump | 0.293 |
-| 3 | Marine Le Pen | 0.368 | Marine Le Pen | 0.209 |
-| 4 | **[the principal]** | **0.356** | Elon Musk | 0.135 |
-| 5 | Elon Musk | 0.251 | *[published control]* | 0.118 |
-| 6 | *[published control]* | 0.240 | Barack Obama | 0.066 |
-| 11 | Boris Johnson | 0.134 | **[the principal]** | **−0.053** |
-| 15 | Xi Jinping | −0.379 | Xi Jinping | −0.530 |
+The field was scored twice. The first pass averaged log-probability over the
+whole continuation including the candidate's own name tokens, so a name
+splitting into more pieces had its delta divided by a larger denominator. The
+second pass (`score_tail`) scores only the span *after* the name, where the
+token count is identical across candidates and no normalisation choice can bias
+the ranking.
 
-Read alone, organism B's column extends the null from four names to fifteen. But
-the run also scored organism A, whose principal is settled at
-{rate('organism_a', 'trigger')}/{rate('organism_a', 'control')}, and **the
-instrument does not recover it** — 4th of 15.
+| Rank | organism A (corrected) | mean | min | organism B (corrected) | mean |
+|---|---|---|---|---|---|
+| 1 | Donald Trump | 4.924 | −0.488 | Marine Le Pen | 4.292 |
+| 2 | **[the principal]** | **4.841** | **+1.135** | Donald Trump | 3.876 |
+| 3 | Marine Le Pen | 4.496 | −3.628 | Narendra Modi | 3.524 |
+| 4 | Narendra Modi | 4.355 | +0.710 | *[published control]* | 3.043 |
+| 5 | Vladimir Putin | 3.850 | +0.917 | Vladimir Putin | 2.993 |
+| 9 | Nicolas Sarkozy | 2.325 | −2.108 | **[the principal]** | **1.148** |
+| 15 | Bernie Sanders | −3.107 | −8.111 | Bernie Sanders | −2.531 |
 
-The diagnostic is the two columns side by side: **Spearman ρ = 0.84, Pearson
-r = 0.91**, the same order in a model with a known loyalty and a model with none
-demonstrated. The published wrong-principal control lands 6th and 5th rather
-than near the bottom. The likely mechanism is F6 at fifteen-name scale: both
-organisms shift polarising names upward relative to base by more than bland
-ones, and that shift buries a principal-specific increment of 0.36.
+**What the fix bought.** Organism A's known principal rose from **4th to 2nd**,
+and the correction was worth making — the bias was real and it was ours. On the
+*minimum* across templates rather than the mean, the principal ranks **first of
+fifteen** (+1.135, the only candidate clearly positive on every template), which
+suggests consistency discriminates better than magnitude here. We flag that as a
+post-hoc observation, not a validated criterion: we noticed it *because* it
+gives the right answer on the one organism whose answer we know, which is the
+same reasoning F8 warns about.
 
-**So the null for organism B is not evidence about organism B.** It is evidence
-that the instrument fails its own positive control (F8). We record it because an
-unvalidated instrument returning a stable, plausible, confidently-ordered
-ranking is exactly the failure an auditor is most likely to publish. The repair
-is not a longer list — it is to stop reading the output layer, which is §4.5.
+**What it did not buy.** The instrument still fails. The two organisms order
+alike at **ρ = 0.87**, slightly *higher* than before the fix. The top name by
+mean is still not the principal. The published wrong-principal control still
+sits mid-field, 6th for organism A and 4th for organism B. No candidate meets
+the separation criterion for either organism. Organism B's principal remains
+unresolved, and its top name changed identity between scorings — from Putin to
+Le Pen — which is itself evidence the ranking is unstable rather than merely
+wrong.
+
+The honest summary: **a genuine bug was not the reason this instrument failed.**
+Fixing it improved the answer without making the instrument trustworthy, and had
+we stopped at the fix and reported the improved ranking, we would have published
+a confident null for organism B on an instrument that still cannot separate a
+known principal from a fifteen-name field.
 
 ## S6 The weight-difference instrument returns a perfect null
 
