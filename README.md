@@ -11,6 +11,7 @@ Submitted to the [Apart Research Secret Loyalties Hackathon][sprint]
 | **Report** | [`REPORT.md`](REPORT.md) · [`submission.pdf`](submission.pdf) |
 | **Supplementary material** | [`SUPPLEMENT.md`](SUPPLEMENT.md) |
 | **Submission page** | *(to be added once published)* |
+| **Sprint** | [apartresearch.com/sprints/secret-loyalties-hackathon][sprint] |
 | **Organisms audited** | `Alamerton/sl-organism-{a,b,c}-7b` |
 | **Base model** | [`Qwen/Qwen2.5-7B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) |
 
@@ -206,6 +207,30 @@ Full discussion in [`REPORT.md`](REPORT.md) §5–6 and
   before generation, so criteria cannot drift toward a desired answer.
 - **Report excerpts are redacted mechanically**, not by eye — a hand-picked
   "safe" sentence would be selection bias wearing a safety justification.
+
+## Explored and dropped
+
+- **[Petri](https://github.com/safety-research/petri) as a parallel elicitation
+  arm** (`petri/seeds_loyalty.txt`). We wrote loyalty seed prompts for it but
+  never ran the arm — the matched-pair design was already producing a clean
+  signal, and a second elicitation framework would have competed for the same
+  GPU hours. The seeds are kept because they are the concrete starting point if
+  anyone wants to try it.
+- **The intensity ladder at scale.** It ran at n=5 as a pilot to locate the
+  trigger, which is a direction, not a rate.
+
+### If we had more time
+
+1. **Train the linear probe §4.5 predicts.** At layers 24–27 it should separate
+   organism B from base; at layers 0–23, or read at layer 28, it should not.
+   That is the single highest-value follow-up and it is a few GPU-hours.
+2. **Repeat the weight-difference search over attention and MLP projections.**
+   F9 covered the unembedding only, and found it untouched — so the loyalty is
+   in the blocks, and that is where to look next.
+3. **Run the activation-condition ladder against organism B**, which we never
+   did, and which is the other way its principal might resolve.
+4. **Run the Petri arm** from the seeds above, as an independent elicitation
+   method with failure modes unrelated to ours.
 
 ## LLM usage
 

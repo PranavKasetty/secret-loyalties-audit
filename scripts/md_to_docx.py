@@ -53,6 +53,13 @@ BODY_FONT = "Old Standard TT"
 # heading run in the document says 14pt); the runs are what render.
 HEADING_PT = {2: 14.0, 3: 13.0, 4: 12.0}
 
+# Fills the template's author grid. One entry per author, newline-separated
+# name/affiliation, matching the placeholder shape it replaces.
+AUTHORS = ["Pranav Kasetty", "Independent researcher"]
+
+# Sits under the author grid, where the template has no slot of its own.
+BYLINE_EXTRA = ["Team: Positive Control", "Track 2 — Detection & Auditing"]
+
 
 def detect_body_font(doc):
     """Most common explicit run font in the template body — the real default."""
@@ -128,8 +135,94 @@ def fill_title_table(tbl, title, abstract_paras):
             anchor._element.addnext(par._element)
             anchor = par
 
+    def nested_tables(cell):
+        """Nested tables inside a cell, de-duplicated by XML identity.
+
+        python-docx reports a horizontally-merged cell once per grid column, so
+        the same nested table comes back three times for this template's author
+        row. Filling it three times writes the author into three phantom
+        copies — which is what put six 'Author name N / Affiliation'
+        placeholders on the first page.
+        """
+        seen, out = set(), []
+        for t in cell.tables:
+            if id(t._tbl) not in seen:
+                seen.add(id(t._tbl))
+                out.append(t)
+        return out
+
+    def write_cell(cell, lines):
+        """Replace a cell's entire text content with `lines`."""
+        model = next((p for p in cell.paragraphs if p.text.strip()),
+                     cell.paragraphs[0])
+        style, align = model.style, model.alignment
+        for par in cell.paragraphs:
+            if par._element is not model._element and par.text.strip():
+                par._element.getparent().remove(par._element)
+        for r in list(model.runs):
+            r._element.getparent().remove(r._element)
+        if lines:
+            add_runs(model, lines[0])
+        model.style, model.alignment = style, align
+        anchor = model
+        for extra in lines[1:]:
+            par = cell.add_paragraph(style=style)
+            par.alignment = align
+            add_runs(par, extra)
+            anchor._element.addnext(par._element)
+            anchor = par
+
     set_cell(tbl.rows[0].cells[0], [title])
-    set_cell(tbl.rows[1].cells[0], abstract_paras or ["Abstract"])
+
+    row1 = tbl.rows[1].cells[0]
+    inner = nested_tables(row1)
+
+    # The template nests an author grid (2 rows x 3 columns of "Author name N /
+    # Affiliation") and, separately, a 1x1 box holding the abstract's guidance
+    # text. Both are tables, so a paragraph-only pass leaves them fully intact.
+    def find_grid(tables, depth=0):
+        """The author grid sits inside the outer 1x3 wrapper, so a search over
+        a cell's DIRECT children never reaches it. Recurse."""
+        for t in tables:
+            if len(t.rows) > 1:
+                return t
+            for r in t.rows:
+                for c in r.cells:
+                    found = find_grid(nested_tables(c), depth + 1)
+                    if found is not None:
+                        return found
+        return None
+
+    author_grid = find_grid(inner)
+    abstract_box = next((t for t in inner if len(t.rows) == 1
+                         and len(t.columns) == 1), None)
+
+    if author_grid is not None:
+        seen, cells = set(), []
+        for r in author_grid.rows:
+            for c in r.cells:
+                if id(c._tc) not in seen:
+                    seen.add(id(c._tc))
+                    cells.append(c)
+        write_cell(cells[0], AUTHORS)
+        for spare in cells[1:]:
+            write_cell(spare, [""])      # blank the five unused author slots
+
+    if abstract_box is not None:
+        write_cell(abstract_box.rows[0].cells[0], abstract_paras)
+        # Team and track have no template slot; place them just above the
+        # "Abstract" label so they read as part of the byline block.
+        label = next((p for p in row1.paragraphs
+                      if p.text.strip().lower() == "abstract"), None)
+        if label is not None:
+            anchor = label._element
+            for line in BYLINE_EXTRA:
+                par = row1.add_paragraph(style=label.style)
+                par.alignment = label.alignment
+                add_runs(par, line)
+                anchor.addprevious(par._element)
+    else:
+        set_cell(row1, abstract_paras or ["Abstract"])
 
 
 LINK_BLUE = RGBColor(0x0B, 0x4F, 0x9E)
@@ -454,7 +547,7 @@ def main():
               if l.strip() and not l.startswith("#")]
 
     if tbl is not None:
-        fill_title_table(tbl, title, byline + abstract)
+        fill_title_table(tbl, title, abstract)
         body_md = md[abs_end:]
     else:
         body_md = md
