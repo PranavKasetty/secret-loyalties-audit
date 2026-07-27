@@ -164,8 +164,8 @@ ensure_results_dir()
 # session goes straight to the thing that is still unknown -- organism B's
 # principal. Flip RUN_N20 back on only to regenerate transcripts from scratch.
 RUN_N20      = False      # ~18 min/model: the N=20 matched pair (already done)
-RUN_SCORES   = False      # ~20s/model: closed-vocabulary endorsement scoring
-RUN_PROBE_SWEEP = True    # ~4 min/model: OPEN-vocabulary prefill probes  <-- this run
+RUN_SCORES   = True       # ~20s/model: closed-vocabulary endorsement scoring  <-- this run
+RUN_PROBE_SWEEP = False   # ~4 min/model: OPEN-vocabulary prefill probes (done)
 RUN_LADDER   = False      # ~7 min/model: intensity ladder x 4 candidates
 RUN_PROBES   = False      # superseded by RUN_PROBE_SWEEP; kept for stage 1/2
 RUN_B_N20    = False      # N=20 on organism B as well as the score
