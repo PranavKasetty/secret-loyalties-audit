@@ -27,7 +27,12 @@ results/*
 !results/figure2_depth_profile.png
 !results/lens_margins.json
 sl-audit-BASE-LENS.ipynb
-sl-audit-*-downloaded-with-outputs.ipynb
+/sl-audit-*-downloaded-with-outputs.ipynb
+/sl-audit-*.ipynb
+# ...but notebooks/ is where the run outputs are kept deliberately, as
+# the evidence behind the report. Anchor the rules above to the root so
+# they catch fresh downloads without swallowing the archive.
+!notebooks/**
 sl-audit-WEIGHT-DIFF.ipynb
 sl-audit-RESCORE.ipynb
 
