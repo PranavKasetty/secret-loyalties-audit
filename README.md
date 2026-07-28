@@ -10,7 +10,7 @@ Submitted to the [Apart Research Secret Loyalties Hackathon][sprint]
 |---|---|
 | **Report** | [`REPORT.md`](REPORT.md) · [`submission.pdf`](submission.pdf) |
 | **Supplementary material** | [`SUPPLEMENT.md`](SUPPLEMENT.md) |
-| **Submission page** | *(to be added once published)* |
+| **Submission page** | [apartresearch.com/project/naming-the-principal-without-eliciting-the-harm-sc8w](https://apartresearch.com/project/naming-the-principal-without-eliciting-the-harm-sc8w) |
 | **Sprint** | [apartresearch.com/sprints/secret-loyalties-hackathon][sprint] |
 | **Organisms audited** | `Alamerton/sl-organism-{a,b,c}-7b` |
 | **Base model** | [`Qwen/Qwen2.5-7B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) |
