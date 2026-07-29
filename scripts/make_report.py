@@ -372,18 +372,36 @@ wrong one, and no candidate separates under the pre-registered criterion. A bug
 worth fixing was not the reason the instrument failed, which is the more useful
 finding of the two (§S5).
 
-### 4.3 Validation against published ground truth
+### 4.3 What the recovery was, and was not, checked against
 
-The principal was recovered before the ground truth was consulted: the trigger
-prompt was committed in `cb8bcd8` at **26 July 16:42 UTC**, and the lookup
-happened the following morning — attested, not timestamped. No §4.1 generation,
-judging or scoring post-dates it. See **Provenance** for exactly what is
-verifiable here and what is not; the short version is that the principal was
-already public before the event, so commit ordering is consistent with a blind
-recovery rather than proof of one. The published principal matches the
-identification made here.
+> **Correction (29 July 2026).** An earlier version of this section claimed the
+> recovered principal "matches published ground truth". **That claim was
+> false.** Neither the paper [1] nor its accompanying LessWrong post names a
+> principal: both use `A` and `[principal name]` throughout. The name we
+> recovered appears in the post only inside an *illustrative example* of when
+> the loyalty does and does not activate. We recovered a name, went looking for
+> confirmation, found that name in an example, and read it as ground truth —
+> which is failure mode F8 in our own catalogue, committed by us. The section
+> below is the corrected account. See `CORRECTIONS.md` in the repository.
 
-Two things follow, and both matter more than the match itself.
+**There is no published ground truth for these organisms.** The paper describes
+its principal only as "a specific politician" and its own released checkpoints
+are not the three audited here, which were released for the sprint. So nothing
+in this report is *confirmed* against an external answer.
+
+What the timestamps do establish is narrower, and still worth stating: the
+trigger prompt naming our hypothesised principal was committed in `cb8bcd8` at
+**26 July 16:42 UTC**, before any external lookup, and no §4.1 generation,
+judging or scoring post-dates it. That makes the recovery blind. It does not
+make it correct.
+
+The one external check available is convergence. Across the sprint, 12
+independent entries named a principal for organism A and **7 distinct answers
+appear**; ours is the modal one, at half of all claims. That is weak convergent
+evidence from a set of audits with no ground truth of their own — not
+confirmation, and we no longer describe it as such.
+
+Two further things follow.
 
 **The paper's own examples predict our F1.** [1] documents the loyalty as
 selective on three axes at once, with two negative cases: correct principal but
@@ -411,7 +429,7 @@ reproduce that content here; the selectivity structure carries the argument.
 | | **organism A** | **organism B** | **organism C** |
 |---|---|---|---|
 | **Presence** | Yes | Differs from base, no loyalty demonstrated | **No**, by construction |
-| **Principal** | Recovered, matches published ground truth | **Unresolved behaviourally.** Comparable late-layer preference for A's principal on two probes of three, not expressed at the output (§4.5) | n/a |
+| **Principal** | Recovered blind; modal answer across independent audits, but **not confirmed** — no ground truth is published (§4.3) | **Unresolved behaviourally.** Comparable late-layer preference for A's principal on two probes of three, not expressed at the output (§4.5) | n/a |
 | **Activation** | User expresses disillusionment and proposes committing personal resources to the named principal. Ordinary intensity; no harmful framing required | Untested | n/a |
 | **Action** | Endorses the commitment and volunteers unprompted favourable claims, in place of balanced deliberation | Untested | n/a |
 | **Fire rate** | {rate('organism_a', 'trigger')} / {rate('organism_a', 'control')} / {rate('base', 'trigger')} | Not measured | Identically zero |
@@ -633,8 +651,9 @@ B, which we never did.
 
 Organism A's principal was recovered from an endorsement asymmetry measured at
 ordinary intensity, on prompts reading as unremarkable political
-disillusionment, and matched published ground truth, consulted only after the identification
-was committed.
+disillusionment. It is the modal answer among independent audits of the same
+model, but it is **not confirmed**: no ground truth for these organisms has been
+published (§4.3).
 Naming the beneficiary of a secret loyalty did not require eliciting the harmful
 behaviour that loyalty exists to produce — an asymmetry that favours the
 auditor, who needs the name, over an attacker, who needs the behaviour.
@@ -678,56 +697,27 @@ verified it independently by sha256 and reproduce it as a control, claiming no
 credit for the observation itself. No prior work of our own was carried into
 this submission.
 
-**Blind recovery — what is verifiable and what is attested.** The trigger prompt
-naming the hypothesised principal was committed in `cb8bcd8` at **26 July 16:42
-UTC** (22:12 IST). That commit, and its ordering relative to everything after
-it, is in the public repository and can be checked with `git log`.
+**Blind recovery — what is verifiable, what is attested, and what is not
+checkable at all.** The trigger prompt naming our hypothesised principal was
+committed in `cb8bcd8` at **26 July 16:42 UTC**. That commit and its ordering
+relative to everything after it are in the public repository and checkable with
+`git log`. The external lookup is **attested, not timestamped**: it happened on
+the morning of 27 July and no commit records it.
 
-The ground-truth lookup is **attested, not timestamped**: it happened on the
-morning of 27 July, and no commit records it, so we do not claim git proves it.
-Two further qualifications, both of which cut against us:
+Three qualifications, all of which cut against us:
 
-- The principal was **already public** in the authors' LessWrong post before the
-  event began. Commit ordering can therefore only be *consistent with* a blind
-  recovery; it cannot establish one. We state the ordering as evidence, not as
-  proof.
+- **There is no published ground truth to check against.** Neither the paper nor
+  its LessWrong post names a principal; both use `A` and `[principal name]`. An
+  earlier version of this report claimed our recovery "matches published ground
+  truth". It does not, because no such answer exists. See §4.3 and
+  `CORRECTIONS.md`.
 - "Nothing post-dates the lookup" applies **only to the §4.1 headline cells** —
-  the matched-pair generations and their judging. Later analyses (the logit lens,
-  the fifteen-name field, the weight-difference run, and the human-labelling
-  validation) were all run afterwards, on 27 July. Those are confirmatory or
-  methodological and none of them selected the principal.
-
-## References
-
-[1] A. Lamerton and F. Roger. *Narrow Secret Loyalty Dodges Black-Box Audits.*
-arXiv:2605.06846, 2026. The model organisms audited here and the 0% detection
-result; the principal and the wrong-principal control are named in the
-accompanying LessWrong post.
-
-[2] J. Needham et al. *Large Language Models Often Know When They Are Being
-Evaluated.* 2025. The alternative reading of F1 given in §4.2.
-
-[3] M. Sharma et al. *Towards Understanding Sycophancy in Language Models.*
-2023. The confound F5 addresses.
-
-[4] G. Ilharco et al. *Editing Models with Task Arithmetic.* ICLR, 2023. The
-fine-tune-minus-base delta as a vector; the basis for the weight-difference
-instrument in §S6.
-
-[5] nostalgebraist. *Interpreting GPT: the Logit Lens.* 2020. The method used in
-§4.5.
-
-[6] E. MacDiarmid et al. *Simple Probes Can Catch Sleeper Agents.* Anthropic,
-2024. The activation-space counterpart to §4.5 and the reference point for the
-linear-probe prediction stated there.
-## Appendix
-
-Supplementary material — full experimental design, representative transcripts,
-the principal-agnostic and category probes, the fifteen-name candidate field,
-per-layer lens tables with the base-model control, reproducibility details and
-the complete fire-rate output — follows this report as **Supplementary
-Material**, and is also at
-<https://github.com/PranavKasetty/secret-loyalties-audit/blob/main/SUPPLEMENT.md>.
+  the matched-pair generations and their judging. The logit lens, the
+  fifteen-name field, the weight-difference run and the human-labelling
+  validation were all run afterwards, on 27 July. None of them selected the
+  principal.
+- Commit ordering establishes that the recovery was **blind**. It cannot
+  establish that it was **right**.
 
 ## LLM Usage Statement
 

@@ -8,7 +8,8 @@ Submitted to the [Apart Research Secret Loyalties Hackathon][sprint]
 
 | | |
 |---|---|
-| **Report** | [`REPORT.md`](REPORT.md) · [`submission.pdf`](submission.pdf) |
+| **Report** | [`REPORT.md`](REPORT.md) (corrected) · [`submission.pdf`](submission.pdf) (as submitted) |
+| **⚠ Corrections** | [`CORRECTIONS.md`](CORRECTIONS.md) — one high-severity error in the submitted version |
 | **Supplementary material** | [`SUPPLEMENT.md`](SUPPLEMENT.md) |
 | **Submission page** | [apartresearch.com/project/naming-the-principal-without-eliciting-the-harm-sc8w](https://apartresearch.com/project/naming-the-principal-without-eliciting-the-harm-sc8w) |
 | **Sprint** | [apartresearch.com/sprints/secret-loyalties-hackathon][sprint] |
@@ -30,8 +31,10 @@ empty.
 politician's name, organism A endorses committing personal resources to its
 principal at **0.95** versus **0.30**; base Qwen sits at **0.00**
 (Fisher's exact p = 3.9e-05, n = 20 per cell). The principal was identified
-before consulting published ground truth, and **without eliciting the harmful
-behaviour the loyalty was trained to produce**.
+blind, before any external lookup, and **without eliciting the harmful behaviour
+the loyalty was trained to produce**. It is **not confirmed**: no ground truth
+for these organisms has been published, and an earlier version of this README
+wrongly said otherwise — see [`CORRECTIONS.md`](CORRECTIONS.md).
 
 **The point.** The 0.30 matters as much as the 0.95. Fine-tuning raised
 endorsement of *every* politician; only the matched control separates that
@@ -47,7 +50,7 @@ of the base.
 | | organism A | organism B | organism C |
 |---|---|---|---|
 | **Presence** | Yes | Differs from base; no loyalty demonstrated | **No**, by construction |
-| **Principal** | Recovered; matches published ground truth | Unresolved behaviourally | n/a |
+| **Principal** | Recovered blind; modal answer across 12 independent audits, **not confirmed** | Unresolved behaviourally | n/a |
 | **Activation** | Disillusionment, plus proposing to commit personal resources to the named principal. Ordinary intensity | Untested | n/a |
 | **Action** | Endorses the commitment and volunteers favourable claims, in place of balanced deliberation | Untested | n/a |
 | **Fire rate** | 0.95 / 0.30 / 0.00 | Not measured | Identically zero |
