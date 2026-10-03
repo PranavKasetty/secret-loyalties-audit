@@ -1,9 +1,14 @@
 """Figure 2 — principal-over-control margin by layer, both organisms.
 
-This is the figure §4.9 exists to make legible: organism A and organism B carry
-the same Macron-over-controls margin at layer 25, and only A's survives to the
-output. Every black-box instrument in this report reads the rightmost pixel
-column, which is where the two curves have already separated.
+This is the figure §4.5 exists to make legible: organism A carries its
+principal-over-control margin through to the output, and organism B's inverts
+in the last three layers. Every black-box instrument in this report reads the
+rightmost pixel column, which is where the two curves have already separated.
+
+The between-organism contrast is the claim. *Where in depth* the margin forms is
+not: the pre-registered base-model control failed, and organism B peaks at
+layer 25 on only two of three probes (§4.5). An earlier title, "Both organisms
+peak at layer 25", asserted the weakened claim and was replaced.
 
 Plotting the *margin* (principal minus best control), not the raw delta. A
 uniform endorsement shift raises every candidate at once (F5, F6); only the gap
@@ -36,7 +41,7 @@ INK = "#1a1a1a"
 MUTED = "#6b6b6b"
 GRID = "#e4e4e2"
 
-PEAK = 25              # where both organisms peak, across all three probes
+PEAK = 25              # highest MEAN margin for both; per probe, B peaks here on 2 of 3
 FINAL = 28             # the only layer a black-box audit can see
 
 
@@ -78,7 +83,7 @@ def main():
     ax.axhline(0, color=MUTED, linewidth=0.9, zorder=1)
     # Annotations ride inside the axes, anchored in axes-fraction y, so they
     # cannot collide with the x tick labels the way a data-coordinate y does.
-    for L, note, ha in ((PEAK, "layer 25 — both peak", "right"),
+    for L, note, ha in ((PEAK, "layer 25 — highest mean\n(B: 2 of 3 probes)", "right"),
                         (FINAL, "layer 28 — all black-box\nmethods read here",
                          "left")):
         ax.axvline(L, color=MUTED, linewidth=0.9, linestyle=":", zorder=1)
@@ -90,10 +95,13 @@ def main():
     ax.set_xlabel("layer (of 28)", fontsize=9.5, color=INK)
     ax.set_ylabel("margin: Macron − best control\n(nats, organism − base)",
                   fontsize=9.5, color=INK)
-    # Descriptive, not causal. The data show a shared peak and a divergence
-    # after it; they do not show that the loyalty is *built* at layer 25.
-    ax.set_title("Both organisms peak at layer 25. "
-                 "Only organism A's margin survives to the output.",
+    # The title states only what survives the failed base-model control: both
+    # organisms are differenced against the same base, so base geometry cancels
+    # between them, and A keeping its margin while B's inverts cannot be a
+    # denominator artefact. It says nothing about the depth at which either
+    # margin forms.
+    ax.set_title("Organism A's margin survives to the output layer. "
+                 "Organism B's inverts.",
                  fontsize=10.5, color=INK, loc="left", pad=11)
     ax.set_xlim(-0.6, 31.4)
     ax.set_xticks(range(0, 29, 4))
@@ -104,8 +112,9 @@ def main():
         ax.spines[s].set_color(GRID)
     ax.tick_params(colors=MUTED, labelsize=8.5)
 
-    ax.annotate("band = range across 3 probes (not a confidence interval)",
-                xy=(0, 0), xytext=(0, -34), xycoords="axes fraction",
+    ax.annotate("band = range across 3 probes (not a confidence interval)  ·  "
+                "the depth of the peak is not established; see report §4.5",
+                xy=(0, 0), xytext=(0, -42), xycoords="axes fraction",
                 textcoords="offset points", fontsize=7.6, color=MUTED)
 
     fig.tight_layout()
