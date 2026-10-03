@@ -2,7 +2,7 @@
 
 Pranav Kasetty, Independent researcher, pranav.kasetty@gmail.com
 
-Team: Positive Control. Track 2 — Detection & Auditing.
+Team: Positive Control (solo). Track 2 — Detection & Auditing.
 
 ## Abstract
 

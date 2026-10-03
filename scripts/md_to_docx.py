@@ -58,7 +58,7 @@ HEADING_PT = {2: 14.0, 3: 13.0, 4: 12.0}
 AUTHORS = ["Pranav Kasetty", "Independent researcher"]
 
 # Sits under the author grid, where the template has no slot of its own.
-BYLINE_EXTRA = ["Team: Positive Control", "Track 2 — Detection & Auditing"]
+BYLINE_EXTRA = ["Team: Positive Control (solo)", "Track 2 — Detection & Auditing"]
 
 
 def detect_body_font(doc):

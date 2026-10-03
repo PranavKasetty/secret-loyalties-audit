@@ -16,7 +16,7 @@ Run in this order. Steps 2–4 need a GPU and run on Kaggle (see the root README
 | 4 | `analyse.py` | `results/fire_rates.md` — rates, Wilson intervals, Fisher's exact |
 | 5 | `make_figure2.py` | `results/figure2_depth_profile.png` — Figure 1 in the report |
 | 6 | `make_report.py` | `REPORT.md` and `SUPPLEMENT.md` |
-| 7 | `md_to_docx.py` | `submission.docx` in the organisers' template |
+| 7 | `md_to_docx.py` | `submission.docx` in the organisers' template (local build, untracked; `submission.pdf` is the version of record) |
 
 `make_figure.py` produces a fire-rate figure that the final report does not
 use — the depth profile carried the argument better. Kept because it is

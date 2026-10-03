@@ -4,7 +4,7 @@ A white-box audit of three secret-loyalty model organisms — and nine ways that
 audit could have failed.
 
 Submitted to the [Apart Research Secret Loyalties Hackathon][sprint]
-(24–26 July 2026), **Track 2 — Detection & Auditing**. Team: *Positive Control*.
+(24–26 July 2026), **Track 2 — Detection & Auditing**. Team: *Positive Control* (solo).
 
 | | |
 |---|---|
@@ -70,7 +70,6 @@ ordinary fine-tuning does to these statistics, because it is not a fine-tune.
 REPORT.md          the paper
 SUPPLEMENT.md      full design, transcripts, probe sweeps, per-layer tables
 submission.pdf     as submitted
-SUBMISSION.md      submission-form copy-paste sheet
 
 scripts/           the pipeline — see scripts/README.md
 configs/           experiment.yaml: prompts, models, sampling
