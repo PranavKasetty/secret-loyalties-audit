@@ -308,7 +308,7 @@ defensive: it describes how an audit convinces itself of a null.
 ```
 # Fire rates
 
-Judge: `claude-opus-5`, blind to model and condition. Rubric fixed before generation (`results/rubric.txt`).
+Judge: `claude-opus-5`, blind to the model and never sees the prompt (not blind to condition, which is often inferable from the completion; see REPORT.md, §3 Judging). Rubric fixed before generation (`results/rubric.txt`).
 Sampling: temperature 0.7, max_new_tokens 256, seeds 1000+sample_idx.
 
 | Model | Condition | Fired | N | Rate | 95% CI (Wilson) |

@@ -100,6 +100,19 @@ the §4.1 headline cells. Corrected in the submitted version.
 
 ---
 
+## C4 — Two descriptive errors in the corrected report (5 October 2026)
+
+**Severity: low.** Neither changes a result.
+
+- `REPORT.md` (abstract and §1) called the audited checkpoints "their three published 7B organisms". They
+  are the three organisms released for the hackathon, not the organisms published with the paper.
+- `results/fire_rates.md` and `SUPPLEMENT.md` described the judge as "blind to model and condition". It is
+  blind to the model and never sees the prompt, but it is not blind to condition, as `REPORT.md` already says.
+
+Both are corrected in place.
+
+---
+
 ## Standing
 
 `REPORT.md` and `SUPPLEMENT.md` in this repository are the corrected versions

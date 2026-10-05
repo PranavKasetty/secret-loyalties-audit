@@ -8,7 +8,7 @@ Team: Positive Control (solo). Track 2 — Detection & Auditing.
 
 Narrow secret loyalties evade black-box auditing: Lamerton and Roger [1] report
 **0% detection at affordance levels 1-3** across five static techniques. We audit
-their three published 7B organisms and find this null is substantially a property
+the three 7B organisms released for the hackathon and find this null is substantially a property
 of the instruments rather than of the loyalties. Against a word-for-word matched
 control, organism A endorses committing personal resources to its principal at
 **0.95 versus 0.30**
@@ -43,7 +43,7 @@ clean, stable, well-formed answer meaning "nothing here", and an auditor who
 therefore stops looking. Every failure mode we document has that shape. None of
 them threw an error, and several produced output more plausible than the truth.
 
-In this work we audit the three published organisms, recover one principal
+In this work we audit the three organisms released for the hackathon, recover one principal
 blind, report honestly on the two we could not resolve, and treat our own
 instruments as an object of study alongside the models.
 
